@@ -1,6 +1,7 @@
 #include "bench.hpp"
 #include "denorm.hpp"
 #include "options.hpp"
+#include "pause.hpp"
 #include "perf_timer.hpp"
 #include <atomic>
 #include <benchmark/benchmark.h>
@@ -30,11 +31,11 @@ struct BenchStorage final {
 
     PerfTimer float_add_finish;
     PerfTimer float_mul_finish;
+    PerfTimer float_fma_finish;
     PerfTimer mem_write_finish;
     std::vector<PerfDuration> latency_duration;
 
-    uint64_t num_float_add_simd;
-    uint64_t num_float_mul_simd;
+    uint64_t num_float_ops_simd;
     size_t mem_write_size;
     void *mem_write_buf;
     void *latency_flag_buf;
@@ -50,8 +51,7 @@ struct BenchStorage final {
 
         latency_duration = std::vector<PerfDuration>(num_threads);
 
-        num_float_add_simd = options.num_float_add == 0 ? 0 : (options.num_float_add - 1) / (AppOptions::simd_batch_size * 2) + 1;
-        num_float_mul_simd = options.num_float_mul == 0 ? 0 : (options.num_float_mul - 1) / (AppOptions::simd_batch_size * 2) + 1;
+        num_float_ops_simd = options.num_float_ops == 0 ? 0 : (options.num_float_ops - 1) / (AppOptions::simd_batch_size * 2) + 1;
         size_t pagesize = numa_pagesize();
         mem_write_size = options.mem_write_size == 0 ? 0 : ((options.mem_write_size - 1) / pagesize + 1) * pagesize;
         mem_write_buf = numa_alloc_local(mem_write_size);
@@ -79,6 +79,7 @@ struct BenchStorage final {
 
 static inline void benchmark_float_add(BenchStorage &local_storage);
 static inline void benchmark_float_mul(BenchStorage &local_storage);
+static inline void benchmark_float_fma(BenchStorage &local_storage);
 static inline void benchmark_mem_write(const AppOptions &options, BenchStorage &local_storage);
 static inline void benchmark_latency_host(const AppOptions &options, BenchStorage &host_storage, int guest_thread_num);
 static inline void benchmark_latency_guest(const AppOptions &options, BenchStorage &host_storage);
@@ -88,14 +89,17 @@ int benchmark(const AppOptions &options) {
     std::vector<std::unique_ptr<BenchStorage>> storage;
     double float_add_flops_sum = 0;
     double float_mul_flops_sum = 0;
+    double float_fma_flops_sum = 0;
     double mem_write_throughput_sum = 0;
     double latency_rtt_sum = 0;
     double latency_rtt_max = 0;
     std::atomic_int float_add_spinner{0};
     std::atomic_int float_mul_spinner{0};
+    std::atomic_int float_fma_spinner{0};
     std::atomic_int mem_write_spinner{0};
     PerfTimer float_add_start;
     PerfTimer float_mul_start;
+    PerfTimer float_fma_start;
     PerfTimer mem_write_start;
 
 #pragma omp parallel
@@ -115,6 +119,7 @@ int benchmark(const AppOptions &options) {
                 storage = std::vector<std::unique_ptr<BenchStorage>>(num_threads);
                 float_add_spinner.store(num_threads, std::memory_order_relaxed);
                 float_mul_spinner.store(num_threads, std::memory_order_relaxed);
+                float_fma_spinner.store(num_threads, std::memory_order_relaxed);
                 mem_write_spinner.store(num_threads, std::memory_order_relaxed);
                 numa_set_bind_policy(true);
             }
@@ -147,6 +152,7 @@ int benchmark(const AppOptions &options) {
                 float_add_start = PerfTimer::now();
             } else {
                 while (float_add_spinner.load(std::memory_order_acquire) != 0) {
+                    ia32_pause();
                 }
             }
             benchmark_float_add(local_storage);
@@ -162,17 +168,17 @@ int benchmark(const AppOptions &options) {
                     if (!storage[i]) {
                         fmt::print("        \"{}\": null"sv, i);
                     } else {
-                        uint64_t num_float_add = storage[i]->num_float_add_simd * (AppOptions::simd_batch_size * 2);
+                        uint64_t num_float_ops = storage[i]->num_float_ops_simd * (AppOptions::simd_batch_size * 2);
                         PerfDuration duration = storage[i]->float_add_finish - float_add_start;
                         fmt::print(
                             "        \"{}\": {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
-                            i, num_float_add, duration
+                            i, num_float_ops, duration
                         );
-                        if (num_float_add == 0) {
+                        if (num_float_ops == 0) {
                             float_add_flops_sum = std::numeric_limits<double>::quiet_NaN();
                             fmt::print("\"flops\": null}}"sv);
                         } else {
-                            double flops = num_float_add / duration.seconds().count();
+                            double flops = num_float_ops / duration.seconds().count();
                             if (!std::isnan(float_add_flops_sum)) {
                                 float_add_flops_sum += flops;
                             }
@@ -186,6 +192,7 @@ int benchmark(const AppOptions &options) {
                 float_mul_start = PerfTimer::now();
             } else {
                 while (float_mul_spinner.load(std::memory_order_acquire) != 0) {
+                    ia32_pause();
                 }
             }
             benchmark_float_mul(local_storage);
@@ -201,19 +208,59 @@ int benchmark(const AppOptions &options) {
                     if (!storage[i]) {
                         fmt::print("        \"{}\": null"sv, i);
                     } else {
-                        uint64_t num_float_mul = storage[i]->num_float_mul_simd * (AppOptions::simd_batch_size * 2);
+                        uint64_t num_float_ops = storage[i]->num_float_ops_simd * (AppOptions::simd_batch_size * 2);
                         PerfDuration duration = storage[i]->float_mul_finish - float_mul_start;
                         fmt::print(
                             "        \"{}\": {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
-                            i, num_float_mul, duration
+                            i, num_float_ops, duration
                         );
-                        if (num_float_mul == 0) {
+                        if (num_float_ops == 0) {
                             float_mul_flops_sum = std::numeric_limits<double>::quiet_NaN();
                             fmt::print("\"flops\": null}}"sv);
                         } else {
-                            double flops = num_float_mul / duration.seconds().count();
+                            double flops = num_float_ops / duration.seconds().count();
                             if (!std::isnan(float_mul_flops_sum)) {
                                 float_mul_flops_sum += flops;
+                            }
+                            fmt::print("\"flops\": {:.16e}}}"sv, flops);
+                        }
+                    }
+                }
+                fmt::print("\n    }},\n    \"float_fma\": {{\n"sv);
+            }
+            if (float_fma_spinner.fetch_sub(1, std::memory_order_release) == 1) {
+                float_fma_start = PerfTimer::now();
+            } else {
+                while (float_fma_spinner.load(std::memory_order_acquire) != 0) {
+                    ia32_pause();
+                }
+            }
+            benchmark_float_fma(local_storage);
+#pragma omp barrier
+#pragma omp master
+            {
+                bool need_comma = false;
+                for (size_t i = 0; i < storage.size(); i++) {
+                    if (need_comma) {
+                        fmt::print(",\n"sv);
+                    }
+                    need_comma = true;
+                    if (!storage[i]) {
+                        fmt::print("        \"{}\": null"sv, i);
+                    } else {
+                        uint64_t num_float_ops = storage[i]->num_float_ops_simd * (AppOptions::simd_batch_size * 4);
+                        PerfDuration duration = storage[i]->float_fma_finish - float_fma_start;
+                        fmt::print(
+                            "        \"{}\": {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
+                            i, num_float_ops, duration
+                        );
+                        if (num_float_ops == 0) {
+                            float_fma_flops_sum = std::numeric_limits<double>::quiet_NaN();
+                            fmt::print("\"flops\": null}}"sv);
+                        } else {
+                            double flops = num_float_ops / duration.seconds().count();
+                            if (!std::isnan(float_fma_flops_sum)) {
+                                float_fma_flops_sum += flops;
                             }
                             fmt::print("\"flops\": {:.16e}}}"sv, flops);
                         }
@@ -225,6 +272,7 @@ int benchmark(const AppOptions &options) {
                 mem_write_start = PerfTimer::now();
             } else {
                 while (mem_write_spinner.load(std::memory_order_acquire) != 0) {
+                    ia32_pause();
                 }
             }
             benchmark_mem_write(options, local_storage);
@@ -327,21 +375,26 @@ int benchmark(const AppOptions &options) {
             storage[thread_num].reset();
 #pragma omp master
             {
-                fmt::print("\n    }},\n    \"summary\": {{\n"sv);
+                fmt::print("\n    }},\n    \"summary\": {{\n        \"flops\": {{"sv);
                 if (std::isnan(float_add_flops_sum)) {
-                    fmt::print("        \"float_add_flops\": null,\n"sv);
+                    fmt::print("\"add\": null, "sv);
                 } else {
-                    fmt::print("        \"float_add_flops\": {:.16e},\n"sv, float_add_flops_sum);
+                    fmt::print("\"add\": {:.16e}, "sv, float_add_flops_sum);
                 }
                 if (std::isnan(float_mul_flops_sum)) {
-                    fmt::print("        \"float_mul_flops\": null,\n"sv);
+                    fmt::print("\"mul\": null, "sv);
                 } else {
-                    fmt::print("        \"float_mul_flops\": {:.16e},\n"sv, float_mul_flops_sum);
+                    fmt::print("\"mul\": {:.16e}, "sv, float_mul_flops_sum);
+                }
+                if (std::isnan(float_fma_flops_sum)) {
+                    fmt::print("\"fma\": null"sv);
+                } else {
+                    fmt::print("\"fma\": {:.16e}"sv, float_fma_flops_sum);
                 }
                 if (std::isnan(mem_write_throughput_sum)) {
-                    fmt::print("        \"mem_write_throughput\": null,\n"sv);
+                    fmt::print("}},\n        \"mem_write_throughput\": null,\n"sv);
                 } else {
-                    fmt::print("        \"mem_write_throughput\": {:.16e},\n"sv, mem_write_throughput_sum);
+                    fmt::print("}},\n        \"mem_write_throughput\": {:.16e},\n"sv, mem_write_throughput_sum);
                 }
                 fmt::print("        \"inter_thread_latency_rtt\": {{");
                 if (std::isnan(latency_rtt_sum)) {
@@ -363,18 +416,23 @@ int benchmark(const AppOptions &options) {
 
 static inline void benchmark_float_add(BenchStorage &local_storage) {
     constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
-    alignas(simd_batch_size * sizeof(float)) float a[simd_batch_size] = {};
+    uint64_t num_float_ops_simd = local_storage.num_float_ops_simd;
+    alignas(4096) float a[simd_batch_size];
+    float b = 1.0f;
+    float c = -1.0f;
+    benchmark::DoNotOptimize(b);
+    benchmark::DoNotOptimize(c);
     for (size_t j = 0; j < simd_batch_size; j++) {
         a[j] = 1.0f;
     }
+    benchmark::DoNotOptimize(a);
 
-    uint64_t num_float_add_simd = local_storage.num_float_add_simd;
-    for (uint64_t i = 0; i < num_float_add_simd; i++) {
-        for (size_t j = 1; j < simd_batch_size; j++) {
-            a[j] += 1.0f;
+    for (uint64_t i = 0; i < num_float_ops_simd; i++) {
+        for (size_t j = 0; j < simd_batch_size; j++) {
+            a[j] += b;
         }
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] += -1.0f;
+            a[j] += c;
         }
     }
     benchmark::DoNotOptimize(a);
@@ -383,22 +441,52 @@ static inline void benchmark_float_add(BenchStorage &local_storage) {
 
 static inline void benchmark_float_mul(BenchStorage &local_storage) {
     constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
-    alignas(simd_batch_size * sizeof(float)) float a[simd_batch_size];
+    uint64_t num_float_ops_simd = local_storage.num_float_ops_simd;
+    alignas(4096) float a[simd_batch_size];
+    float b = 5.0f;
+    float c = 0.2f;
+    benchmark::DoNotOptimize(b);
+    benchmark::DoNotOptimize(c);
     for (size_t j = 0; j < simd_batch_size; j++) {
         a[j] = 1.0f;
     }
+    benchmark::DoNotOptimize(a);
 
-    uint64_t num_float_mul_simd = local_storage.num_float_mul_simd;
-    for (uint64_t i = 0; i < num_float_mul_simd; i++) {
-        for (size_t j = 1; j < simd_batch_size; j++) {
-            a[j] *= 5.0f;
+    for (uint64_t i = 0; i < num_float_ops_simd; i++) {
+        for (size_t j = 0; j < simd_batch_size; j++) {
+            a[j] *= b;
         }
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] *= 0.2f;
+            a[j] *= c;
         }
     }
     benchmark::DoNotOptimize(a);
     local_storage.float_mul_finish = PerfTimer::now();
+}
+
+static inline void benchmark_float_fma(BenchStorage &local_storage) {
+    constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
+    uint64_t num_float_ops_simd = local_storage.num_float_ops_simd;
+    alignas(4096) float a[simd_batch_size];
+    float b = 5.0f;
+    float c = -0.8333333f;
+    benchmark::DoNotOptimize(b);
+    benchmark::DoNotOptimize(c);
+    for (size_t j = 0; j < simd_batch_size; j++) {
+        a[j] = 1.0f;
+    }
+    benchmark::DoNotOptimize(a);
+
+    for (uint64_t i = 0; i < num_float_ops_simd; i++) {
+        for (size_t j = 0; j < simd_batch_size; j++) {
+            a[j] += a[j] * b;
+        }
+        for (size_t j = 0; j < simd_batch_size; j++) {
+            a[j] += a[j] * c;
+        }
+    }
+    benchmark::DoNotOptimize(a);
+    local_storage.float_fma_finish = PerfTimer::now();
 }
 
 static inline void benchmark_mem_write(const AppOptions &options, BenchStorage &local_storage) {
@@ -418,16 +506,19 @@ static inline void benchmark_latency_host(const AppOptions &options, BenchStorag
 
     latency_flag.store(true, std::memory_order_release);
     while (latency_flag.load(std::memory_order_acquire)) {
+        ia32_pause();
     }
     PerfTimer start = PerfTimer::now();
     latency_flag.store(true, std::memory_order_release);
     for (size_t i = 1; i < num_latency_measures; i++) {
-        bool false_value;
-        do {
+        bool false_value = false;
+        while (!latency_flag.compare_exchange_weak(false_value, true, std::memory_order_acq_rel, std::memory_order_acquire)) {
+            ia32_pause();
             false_value = false;
-        } while (!latency_flag.compare_exchange_weak(false_value, true, std::memory_order_acq_rel, std::memory_order_acquire));
+        }
     }
     while (latency_flag.load(std::memory_order_acquire)) {
+        ia32_pause();
     }
     PerfTimer finish = PerfTimer::now();
     host_storage.latency_duration[guest_thread_num] = finish - start;
@@ -438,10 +529,11 @@ static inline void benchmark_latency_guest(const AppOptions &options, BenchStora
     size_t num_latency_measures = options.num_latency_measures;
 
     for (size_t i = 0; i <= num_latency_measures; i++) {
-        bool true_value;
-        do {
+        bool true_value = true;
+        while (!latency_flag.compare_exchange_weak(true_value, false, std::memory_order_acq_rel, std::memory_order_acquire)) {
+            ia32_pause();
             true_value = true;
-        } while (!latency_flag.compare_exchange_weak(true_value, false, std::memory_order_acq_rel, std::memory_order_acquire));
+        }
     }
 }
 
