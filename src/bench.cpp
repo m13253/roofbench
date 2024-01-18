@@ -418,10 +418,6 @@ static inline void benchmark_float_add(BenchStorage &local_storage) {
     constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
     uint64_t num_float_ops_simd = local_storage.num_float_ops_simd;
     alignas(4096) float a[simd_batch_size];
-    float b = 1.0f;
-    float c = -1.0f;
-    benchmark::DoNotOptimize(b);
-    benchmark::DoNotOptimize(c);
     for (size_t j = 0; j < simd_batch_size; j++) {
         a[j] = 1.0f;
     }
@@ -429,10 +425,10 @@ static inline void benchmark_float_add(BenchStorage &local_storage) {
 
     for (uint64_t i = 0; i < num_float_ops_simd; i++) {
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] += b;
+            a[j] += 1.0f;
         }
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] += c;
+            a[j] += -1.0f;
         }
     }
     benchmark::DoNotOptimize(a);
@@ -443,10 +439,6 @@ static inline void benchmark_float_mul(BenchStorage &local_storage) {
     constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
     uint64_t num_float_ops_simd = local_storage.num_float_ops_simd;
     alignas(4096) float a[simd_batch_size];
-    float b = 5.0f;
-    float c = 0.2f;
-    benchmark::DoNotOptimize(b);
-    benchmark::DoNotOptimize(c);
     for (size_t j = 0; j < simd_batch_size; j++) {
         a[j] = 1.0f;
     }
@@ -454,10 +446,10 @@ static inline void benchmark_float_mul(BenchStorage &local_storage) {
 
     for (uint64_t i = 0; i < num_float_ops_simd; i++) {
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] *= b;
+            a[j] *= 5.0f;
         }
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] *= c;
+            a[j] *= 0.2f;
         }
     }
     benchmark::DoNotOptimize(a);
@@ -468,10 +460,6 @@ static inline void benchmark_float_fma(BenchStorage &local_storage) {
     constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
     uint64_t num_float_ops_simd = local_storage.num_float_ops_simd;
     alignas(4096) float a[simd_batch_size];
-    float b = 5.0f;
-    float c = -0.8333333f;
-    benchmark::DoNotOptimize(b);
-    benchmark::DoNotOptimize(c);
     for (size_t j = 0; j < simd_batch_size; j++) {
         a[j] = 1.0f;
     }
@@ -479,10 +467,10 @@ static inline void benchmark_float_fma(BenchStorage &local_storage) {
 
     for (uint64_t i = 0; i < num_float_ops_simd; i++) {
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] += a[j] * b;
+            a[j] += a[j] * 5.0f;
         }
         for (size_t j = 0; j < simd_batch_size; j++) {
-            a[j] += a[j] * c;
+            a[j] += a[j] * -0.8333333f;
         }
     }
     benchmark::DoNotOptimize(a);
