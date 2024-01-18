@@ -12,6 +12,7 @@ Dependencies:
 * numactl or libnuma-dev
 
 ```bash
+export CC=gcc CXX=g++
 meson setup builddir -Dsimd_batch_size=512
 ninja -C builddir
 ```
