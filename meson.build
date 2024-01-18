@@ -32,8 +32,8 @@ openmp = dependency('openmp', language: 'cpp')
 threads = dependency('threads')
 
 sources = [
-    'src/bench.cpp',
     'src/main.cpp',
+    'src/bench.cpp',
 ]
 
 executable(
