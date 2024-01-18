@@ -13,14 +13,20 @@ Dependencies:
 
 ```bash
 export CC=gcc CXX=g++
-meson setup builddir -D simd_batch_size=240
+meson setup builddir -D simd_batch_size=232
 ninja -C builddir
 ```
 
-(Turning on 512-bit SIMD may be fasster on Intel CPUs.)
+(Turning on 512-bit SIMD may be fasster on Intel CPUs, if there is only one application running.)
 ```bash
-meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size=464
+meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size=464 --wipe
 ```
+
+## Optimal SIMD batch size
+
+On x86 GCC, the optimal value is: (number of SIMD registers - 3) * (number of scalars per SIMD register).
+
+On x86 Clang, the optimal value is: (number of SIMD registers - 2) * (number of scalars per SIMD register).
 
 ## Running
 

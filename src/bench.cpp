@@ -424,15 +424,11 @@ static inline void benchmark_float_add(BenchStorage &local_storage) {
     benchmark::DoNotOptimize(a);
 
     for (uint64_t i = 0; i < num_float_ops_simd; i++) {
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC unroll 30
-#endif
+#pragma GCC unroll simd_batch_size
         for (size_t j = 0; j < simd_batch_size; j++) {
             a[j] += 1.0f;
         }
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC unroll 30
-#endif
+#pragma GCC unroll simd_batch_size
         for (size_t j = 0; j < simd_batch_size; j++) {
             a[j] += -1.0f;
         }
@@ -451,15 +447,11 @@ static inline void benchmark_float_mul(BenchStorage &local_storage) {
     benchmark::DoNotOptimize(a);
 
     for (uint64_t i = 0; i < num_float_ops_simd; i++) {
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC unroll 30
-#endif
+#pragma GCC unroll simd_batch_size
         for (size_t j = 0; j < simd_batch_size; j++) {
             a[j] *= 5.0f;
         }
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC unroll 30
-#endif
+#pragma GCC unroll simd_batch_size
         for (size_t j = 0; j < simd_batch_size; j++) {
             a[j] *= 0.2f;
         }
@@ -478,15 +470,11 @@ static inline void benchmark_float_fma(BenchStorage &local_storage) {
     benchmark::DoNotOptimize(a);
 
     for (uint64_t i = 0; i < num_float_ops_simd; i++) {
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC unroll 30
-#endif
+#pragma GCC unroll simd_batch_size
         for (size_t j = 0; j < simd_batch_size; j++) {
             a[j] += a[j] * 5.0f;
         }
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC unroll 30
-#endif
+#pragma GCC unroll simd_batch_size
         for (size_t j = 0; j < simd_batch_size; j++) {
             a[j] += a[j] * -0.8333333f;
         }

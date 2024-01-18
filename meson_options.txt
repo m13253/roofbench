@@ -1,1 +1,1 @@
-option('simd_batch_size', type: 'integer', min: 1, value: 240, description: 'SIMD batch size. Optimal value is (number of SIMD registers - 2) * (number of scalars per SIMD register)')
+option('simd_batch_size', type: 'integer', min: 1, value: 232, description: 'SIMD batch size')
