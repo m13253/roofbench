@@ -17,7 +17,7 @@ meson setup builddir -D simd_batch_size=512
 ninja -C builddir
 ```
 
-(If you want to enable 512-bit AVX-512 instructions:)
+(If you want to use 512-bit AVX-512 instructions, which may be faster or slower:)
 ```bash
 meson setup builddir -D simd_batch_size=512 -D cpp_args=-mprefer-vector-width=512
 ```
