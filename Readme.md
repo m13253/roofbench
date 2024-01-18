@@ -7,7 +7,7 @@ Benchmark utility for CPU FLOPS, core latency, and memory bandwidth.
 Dependencies:
 * Linux
 * GCC 11.0 or Clang 11.0 or newer
-* LLVM OpenMP Runtime Library if using Clang
+* LLVM OpenMP Runtime Library (if using Clang)
 * numactl or libnuma-dev
 
 ```bash
