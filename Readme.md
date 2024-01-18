@@ -24,9 +24,14 @@ meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size=46
 
 ## Optimal SIMD batch size
 
-On x86 GCC, the optimal value is: (number of SIMD registers - 3) * (number of scalars per SIMD register).
+On x86, the optimal value is (total SIMD register count − occupied register count) × (SIMD lane width) ÷ sizeof (float).
 
-On x86 Clang, the optimal value is: (number of SIMD registers - 2) * (number of scalars per SIMD register).
+--------------------------------------
+Compiler | 256-bit SIMD | 512-bit SIMD
+--------------------------------------
+   GCC   |      232     |     240
+  Clang  |      464     |     480
+--------------------------------------
 
 ## Running
 
