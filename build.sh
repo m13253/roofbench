@@ -1,4 +1,4 @@
 #!/bin/sh
 
-meson setup builddir --reconfigure &&
+meson setup builddir --reconfigure "$@" &&
 ninja -C builddir
