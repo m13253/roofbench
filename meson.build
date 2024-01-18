@@ -2,6 +2,7 @@ project(
     'roofbench',
     'cpp',
     version: '0.1',
+    license: 'MIT',
     default_options: [
         'b_lto=true',
         'buildtype=debugoptimized',
@@ -14,8 +15,14 @@ project(
 
 add_project_arguments(['-ffast-math', '-march=native'], language: 'cpp')
 
-benchmark = subproject('google-benchmark').get_variable('google_benchmark_dep')
-cli11 = subproject('cli11').get_variable('CLI11_dep')
+benchmark = subproject(
+    'google-benchmark',
+    default_options: ['cpp_std=c++20'],
+).get_variable('google_benchmark_dep')
+cli11 = subproject(
+    'cli11',
+    default_options: ['cpp_std=c++20'],
+).get_variable('CLI11_dep')
 fmt = subproject(
     'fmt',
     default_options: ['cpp_std=c++20'],

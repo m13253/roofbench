@@ -42,7 +42,7 @@ struct BenchStorage final {
     std::binary_semaphore latency_host_sem{0};
     std::binary_semaphore latency_guest_sem{0};
 
-    explicit BenchStorage(const AppOptions &options, int num_threads) noexcept {
+    explicit BenchStorage(const AppOptions &options, int num_threads) {
         omp_affinity = omp_get_place_num();
         kernel_affinity = sched_getcpu();
         numa_node = numa_node_of_cpu(kernel_affinity);
@@ -54,7 +54,13 @@ struct BenchStorage final {
         size_t pagesize = numa_pagesize();
         mem_write_size = options.mem_write_size == 0 ? 0 : ((options.mem_write_size - 1) / pagesize + 1) * pagesize;
         mem_write_buf = numa_alloc_local(mem_write_size);
+        if (!mem_write_buf) {
+            throw std::bad_alloc();
+        }
         latency_flag_buf = numa_alloc_local(sizeof *latency_flag);
+        if (!latency_flag_buf) {
+            throw std::bad_alloc();
+        }
         std::memset(mem_write_buf, 0xcc, mem_write_size);
         std::memset(latency_flag_buf, 0xcc, sizeof *latency_flag);
         benchmark::DoNotOptimize(mem_write_buf);
@@ -108,6 +114,7 @@ int benchmark(const AppOptions &options) {
                 float_add_spinner.store(num_threads, std::memory_order_relaxed);
                 float_mul_spinner.store(num_threads, std::memory_order_relaxed);
                 mem_write_spinner.store(num_threads, std::memory_order_relaxed);
+                numa_set_bind_policy(true);
             }
         }
 #pragma omp barrier
@@ -312,6 +319,11 @@ int benchmark(const AppOptions &options) {
                         fmt::print("}}}}"sv);
                     }
                 }
+            }
+#pragma omp barrier
+            storage[thread_num].reset();
+#pragma omp master
+            {
                 fmt::print("\n    }},\n    summary = {{\n"sv);
                 if (std::isnan(float_add_flops_sum)) {
                     fmt::print("        \"float_add_flops\": null,\n"sv);
@@ -341,8 +353,6 @@ int benchmark(const AppOptions &options) {
                 }
                 fmt::print("}}\n    }}\n}}\n"sv);
             }
-#pragma omp barrier
-            storage[thread_num].reset();
         }
     }
     return retval;
