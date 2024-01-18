@@ -7,7 +7,8 @@ Benchmark utility for CPU FLOPS, core latency, and memory bandwidth.
 Dependencies:
 * Linux
 * Clang 11.0 or newer
-  (depending on platform, GCC may not generate efficient SIMD instructions)
+
+  (depending on software version, GCC may not properly generate SIMD instructions)
 * LLVM OpenMP Runtime Library (if using Clang)
 * Meson build system
 * numactl or libnuma-dev
