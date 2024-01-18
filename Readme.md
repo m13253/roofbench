@@ -6,15 +6,13 @@ Benchmark utility for CPU FLOPS, core latency, and memory bandwidth.
 
 Dependencies:
 * Linux
-* Clang 11.0 or newer
-
-  (depending on software version, GCC may not properly generate SIMD instructions)
+* GCC 11.0 or Clang 11.0 or newer
 * LLVM OpenMP Runtime Library (if using Clang)
 * Meson build system
 * numactl or libnuma-dev
 
 ```bash
-export CC=clang CXX=clang++
+export CC=gcc CXX=g++
 meson setup builddir -D simd_batch_size=240
 ninja -C builddir
 ```
