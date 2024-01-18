@@ -21,6 +21,8 @@ ninja -C builddir
 OMP_PLACES=threads OMP_PROC_BIND=true ./builddir/roofbench
 ```
 
+The output is in JSON format.
+
 ## Included benchmarks
 
 1. Affinity: shows thread affinity
@@ -29,7 +31,7 @@ OMP_PLACES=threads OMP_PROC_BIND=true ./builddir/roofbench
 4. Mem Write: memset into corresponding NUMA local memory
 5. Inter-thread Latency: round-trip time between each pair of host thread and guest thread, through shared memory communication on host thread’s NUMA node
 
-## Units
+## Units of measurement
 
 * Time duration: seconds
 * FLOPS: operations per second
