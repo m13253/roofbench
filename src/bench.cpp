@@ -132,10 +132,10 @@ int benchmark(const AppOptions &options) {
                     }
                     need_comma = true;
                     if (!storage[i]) {
-                        fmt::print("        {}: null"sv, i);
+                        fmt::print("        \"{}\": null"sv, i);
                     } else {
                         fmt::print(
-                            "        {0}: {{\"omp_thread_num\": {0}, \"omp_affinity\": {1}, \"kernel_affinity\": {2}, \"numa_node\": {3}}}"sv,
+                            "        \"{0}\": {{\"omp_thread_num\": {0}, \"omp_affinity\": {1}, \"kernel_affinity\": {2}, \"numa_node\": {3}}}"sv,
                             i, storage[i]->omp_affinity, storage[i]->kernel_affinity, storage[i]->numa_node
                         );
                     }
@@ -159,12 +159,12 @@ int benchmark(const AppOptions &options) {
                     }
                     need_comma = true;
                     if (!storage[i]) {
-                        fmt::print("        {}: null"sv, i);
+                        fmt::print("        \"{}\": null"sv, i);
                     } else {
                         uint64_t num_float_add = storage[i]->num_float_add_simd * (AppOptions::simd_batch_size * 2);
                         PerfDuration duration = storage[i]->float_add_finish - float_add_start;
                         fmt::print(
-                            "        {}: {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
+                            "        \"{}\": {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
                             i, num_float_add, duration
                         );
                         if (num_float_add == 0) {
@@ -198,12 +198,12 @@ int benchmark(const AppOptions &options) {
                     }
                     need_comma = true;
                     if (!storage[i]) {
-                        fmt::print("        {}: null"sv, i);
+                        fmt::print("        \"{}\": null"sv, i);
                     } else {
                         uint64_t num_float_mul = storage[i]->num_float_mul_simd * (AppOptions::simd_batch_size * 2);
                         PerfDuration duration = storage[i]->float_mul_finish - float_mul_start;
                         fmt::print(
-                            "        {}: {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
+                            "        \"{}\": {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
                             i, num_float_mul, duration
                         );
                         if (num_float_mul == 0) {
@@ -237,9 +237,9 @@ int benchmark(const AppOptions &options) {
                     }
                     need_comma = true;
                     if (!storage[i]) {
-                        fmt::print("        {}: null"sv, i);
+                        fmt::print("        \"{}\": null"sv, i);
                     } else {
-                        fmt::print("        {}: {{"sv, i);
+                        fmt::print("        \"{}\": {{"sv, i);
                         size_t bytes_written;
                         if (__builtin_mul_overflow(storage[i]->mem_write_size, options.num_mem_writes, &bytes_written)) {
                             fmt::print("\"bytes_written\": null, "sv);
@@ -296,9 +296,9 @@ int benchmark(const AppOptions &options) {
                     }
                     need_comma = true;
                     if (!storage[i]) {
-                        fmt::print("        {}: null"sv, i);
+                        fmt::print("        \"{}\": null"sv, i);
                     } else {
-                        fmt::print("        {}: {{\"rtt_to\": {{"sv, i);
+                        fmt::print("        \"{}\": {{\"rtt_to\": {{"sv, i);
                         for (size_t j = 0; j < storage[i]->latency_duration.size(); j++) {
                             if (j != 0) {
                                 fmt::print(", "sv);
@@ -306,7 +306,7 @@ int benchmark(const AppOptions &options) {
                             if (options.num_latency_measures == 0) {
                                 latency_rtt_sum = std::numeric_limits<double>::quiet_NaN();
                                 latency_rtt_max = std::numeric_limits<double>::quiet_NaN();
-                                fmt::print("{}: null"sv, j);
+                                fmt::print("\"{}\": null"sv, j);
                             } else {
                                 double rtt = storage[i]->latency_duration[j].seconds().count() / options.num_latency_measures;
                                 if (!std::isnan(latency_rtt_sum)) {
@@ -315,7 +315,7 @@ int benchmark(const AppOptions &options) {
                                 if (!std::isnan(latency_rtt_max) && rtt > latency_rtt_max) {
                                     latency_rtt_max = rtt;
                                 }
-                                fmt::print("{}: {:.9e}"sv, j, rtt);
+                                fmt::print("\"{}\": {:.9e}"sv, j, rtt);
                             }
                         }
                         fmt::print("}}}}"sv);
