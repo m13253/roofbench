@@ -13,8 +13,13 @@ Dependencies:
 
 ```bash
 export CC=gcc CXX=g++
-meson setup builddir -Dsimd_batch_size=512
+meson setup builddir -D simd_batch_size=512
 ninja -C builddir
+```
+
+(If you want to enable 512-bit AVX-512 instructions:)
+```bash
+meson setup builddir -D simd_batch_size=512 -D cpp_args=-mprefer-vector-width=512
 ```
 
 ## Running
