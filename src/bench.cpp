@@ -346,7 +346,7 @@ int benchmark(const AppOptions &options) {
                 if (std::isnan(latency_rtt_sum)) {
                     fmt::print("\"avg\": null, "sv);
                 } else {
-                    fmt::print("\"avg\": {:.9e}, "sv, latency_rtt_sum / num_threads);
+                    fmt::print("\"avg\": {:.9e}, "sv, latency_rtt_sum / (num_threads * num_threads));
                 }
                 if (std::isnan(latency_rtt_max)) {
                     fmt::print("\"max\": null"sv);
