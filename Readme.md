@@ -8,6 +8,7 @@ Dependencies:
 * Linux
 * GCC 11.0 or Clang 11.0 or newer
 * LLVM OpenMP Runtime Library (if using Clang)
+* Meson build system
 * numactl or libnuma-dev
 
 ```bash
