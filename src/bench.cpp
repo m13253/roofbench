@@ -326,7 +326,7 @@ int benchmark(const AppOptions &options) {
             storage[thread_num].reset();
 #pragma omp master
             {
-                fmt::print("\n    }},\n    summary = {{\n"sv);
+                fmt::print("\n    }},\n    \"summary\": {{\n"sv);
                 if (std::isnan(float_add_flops_sum)) {
                     fmt::print("        \"float_add_flops\": null,\n"sv);
                 } else {
@@ -353,7 +353,7 @@ int benchmark(const AppOptions &options) {
                 } else {
                     fmt::print("\"max\": {:.9e}"sv, latency_rtt_max);
                 }
-                fmt::print("}}\n    }}\n}}\n"sv);
+                fmt::print("}}\n    }}\n}}\n// Use OMP_NUM_THREADS to customize thread count,\n// use OMP_PLACES or GOMP_CPU_AFFINITY to customize thread affinity.\n"sv);
             }
         }
     }
