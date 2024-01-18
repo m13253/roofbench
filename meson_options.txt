@@ -1,0 +1,1 @@
+option('simd_batch_size', type: 'integer', min: 1, value: 512, description: 'SIMD batch size used in float_add and float_mul tests. Different values produce different FLOPS readings.')

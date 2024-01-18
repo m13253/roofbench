@@ -13,7 +13,7 @@ project(
     ],
 )
 
-add_project_arguments(['-ffast-math', '-march=native'], language: 'cpp')
+add_project_arguments('-march=native', language: 'cpp')
 
 benchmark = subproject(
     'google-benchmark',
@@ -34,12 +34,14 @@ threads = dependency('threads')
 sources = [
     'src/bench.cpp',
     'src/main.cpp',
-    'src/perf_timer.cpp',
 ]
 
 executable(
     'roofbench',
     sources,
+    cpp_args: [
+        '-DROOFBENCH_SIMD_BATCH_SIZE=@0@'.format(get_option('simd_batch_size')),
+    ],
     install: true,
     dependencies: [
         benchmark,

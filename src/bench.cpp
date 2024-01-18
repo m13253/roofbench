@@ -1,4 +1,5 @@
 #include "bench.hpp"
+#include "denorm.hpp"
 #include "options.hpp"
 #include "perf_timer.hpp"
 #include <atomic>
@@ -49,8 +50,8 @@ struct BenchStorage final {
 
         latency_duration = std::vector<PerfDuration>(num_threads);
 
-        num_float_add_simd = options.num_float_add == 0 ? 0 : (options.num_float_add - 1) / (AppOptions::simd_lane_width * 2) + 1;
-        num_float_mul_simd = options.num_float_mul == 0 ? 0 : (options.num_float_mul - 1) / (AppOptions::simd_lane_width * 2) + 1;
+        num_float_add_simd = options.num_float_add == 0 ? 0 : (options.num_float_add - 1) / (AppOptions::simd_batch_size * 2) + 1;
+        num_float_mul_simd = options.num_float_mul == 0 ? 0 : (options.num_float_mul - 1) / (AppOptions::simd_batch_size * 2) + 1;
         size_t pagesize = numa_pagesize();
         mem_write_size = options.mem_write_size == 0 ? 0 : ((options.mem_write_size - 1) / pagesize + 1) * pagesize;
         mem_write_buf = numa_alloc_local(mem_write_size);
@@ -75,11 +76,11 @@ struct BenchStorage final {
     }
 };
 
-static void benchmark_float_add(BenchStorage &local_storage);
-static void benchmark_float_mul(BenchStorage &local_storage);
-static void benchmark_mem_write(const AppOptions &options, BenchStorage &local_storage);
-static void benchmark_latency_host(const AppOptions &options, BenchStorage &host_storage, int guest_thread_num);
-static void benchmark_latency_guest(const AppOptions &options, BenchStorage &host_storage);
+static inline void benchmark_float_add(BenchStorage &local_storage);
+static inline void benchmark_float_mul(BenchStorage &local_storage);
+static inline void benchmark_mem_write(const AppOptions &options, BenchStorage &local_storage);
+static inline void benchmark_latency_host(const AppOptions &options, BenchStorage &host_storage, int guest_thread_num);
+static inline void benchmark_latency_guest(const AppOptions &options, BenchStorage &host_storage);
 
 int benchmark(const AppOptions &options) {
     int retval = 0;
@@ -119,6 +120,7 @@ int benchmark(const AppOptions &options) {
         }
 #pragma omp barrier
         if (retval == 0) {
+            enable_denorm_ftz();
             BenchStorage &local_storage = *(storage[thread_num] = std::make_unique<BenchStorage>(options, num_threads)).get();
 #pragma omp barrier
 #pragma omp master
@@ -159,7 +161,7 @@ int benchmark(const AppOptions &options) {
                     if (!storage[i]) {
                         fmt::print("        {}: null"sv, i);
                     } else {
-                        uint64_t num_float_add = storage[i]->num_float_add_simd * (AppOptions::simd_lane_width * 2);
+                        uint64_t num_float_add = storage[i]->num_float_add_simd * (AppOptions::simd_batch_size * 2);
                         PerfDuration duration = storage[i]->float_add_finish - float_add_start;
                         fmt::print(
                             "        {}: {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
@@ -198,7 +200,7 @@ int benchmark(const AppOptions &options) {
                     if (!storage[i]) {
                         fmt::print("        {}: null"sv, i);
                     } else {
-                        uint64_t num_float_mul = storage[i]->num_float_mul_simd * (AppOptions::simd_lane_width * 2);
+                        uint64_t num_float_mul = storage[i]->num_float_mul_simd * (AppOptions::simd_batch_size * 2);
                         PerfDuration duration = storage[i]->float_mul_finish - float_mul_start;
                         fmt::print(
                             "        {}: {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
@@ -358,66 +360,47 @@ int benchmark(const AppOptions &options) {
     return retval;
 }
 
-static void benchmark_float_add(BenchStorage &local_storage) {
-    constexpr size_t simd_lane_width = AppOptions::simd_lane_width;
-    float a[simd_lane_width], b[simd_lane_width];
-    for (size_t j = 0; j < simd_lane_width; j++) {
-        a[j] = 0;
-        b[j] = (double) (j + 1) / (simd_lane_width + 1);
-        if (j % 2 != 0) {
-            b[j] *= -1;
-        }
+static inline void benchmark_float_add(BenchStorage &local_storage) {
+    constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
+    alignas(simd_batch_size * sizeof(float)) float a[simd_batch_size] = {};
+    for (size_t j = 0; j < simd_batch_size; j++) {
+        a[j] = 1.0f;
     }
-    benchmark::DoNotOptimize(a);
-    benchmark::DoNotOptimize(b);
 
     uint64_t num_float_add_simd = local_storage.num_float_add_simd;
     for (uint64_t i = 0; i < num_float_add_simd; i++) {
-        for (size_t j = 1; j < simd_lane_width; j++) {
-            a[j] += b[j];
+        for (size_t j = 1; j < simd_batch_size; j++) {
+            a[j] += 1.0f;
         }
-        benchmark::DoNotOptimize(a);
-        for (size_t j = 0; j < simd_lane_width; j++) {
-            a[j] -= b[j];
+        for (size_t j = 0; j < simd_batch_size; j++) {
+            a[j] += -1.0f;
         }
-        benchmark::DoNotOptimize(a);
     }
+    benchmark::DoNotOptimize(a);
     local_storage.float_add_finish = PerfTimer::now();
 }
 
-static void benchmark_float_mul(BenchStorage &local_storage) {
-    constexpr size_t simd_lane_width = AppOptions::simd_lane_width;
-    float a[simd_lane_width], b[simd_lane_width], c[simd_lane_width];
-    for (size_t j = 0; j < simd_lane_width; j++) {
-        a[j] = (double) (j + 1) / (simd_lane_width + 1);
-        b[j] = (double) (simd_lane_width + 1) / (j + 1);
-        if ((j & 1) != 0) {
-            a[j] *= -1;
-        }
-        if ((j & 2) != 0) {
-            b[j] *= -1;
-        }
-        c[j] = a[j];
+static inline void benchmark_float_mul(BenchStorage &local_storage) {
+    constexpr size_t simd_batch_size = AppOptions::simd_batch_size;
+    alignas(simd_batch_size * sizeof(float)) float a[simd_batch_size];
+    for (size_t j = 0; j < simd_batch_size; j++) {
+        a[j] = 1.0f;
     }
-    benchmark::DoNotOptimize(a);
-    benchmark::DoNotOptimize(b);
-    benchmark::DoNotOptimize(c);
 
     uint64_t num_float_mul_simd = local_storage.num_float_mul_simd;
     for (uint64_t i = 0; i < num_float_mul_simd; i++) {
-        for (size_t j = 1; j < simd_lane_width; j++) {
-            a[j] *= b[j];
+        for (size_t j = 1; j < simd_batch_size; j++) {
+            a[j] *= 5.0f;
         }
-        benchmark::DoNotOptimize(a);
-        for (size_t j = 0; j < simd_lane_width; j++) {
-            a[j] *= c[j];
+        for (size_t j = 0; j < simd_batch_size; j++) {
+            a[j] *= 0.2f;
         }
-        benchmark::DoNotOptimize(a);
     }
+    benchmark::DoNotOptimize(a);
     local_storage.float_mul_finish = PerfTimer::now();
 }
 
-static void benchmark_mem_write(const AppOptions &options, BenchStorage &local_storage) {
+static inline void benchmark_mem_write(const AppOptions &options, BenchStorage &local_storage) {
     void *mem_write_buf = local_storage.mem_write_buf;
     size_t mem_write_size = local_storage.mem_write_size;
     size_t num_mem_writes = options.num_mem_writes;
@@ -428,7 +411,7 @@ static void benchmark_mem_write(const AppOptions &options, BenchStorage &local_s
     local_storage.mem_write_finish = PerfTimer::now();
 }
 
-static void benchmark_latency_host(const AppOptions &options, BenchStorage &host_storage, int guest_thread_num) {
+static inline void benchmark_latency_host(const AppOptions &options, BenchStorage &host_storage, int guest_thread_num) {
     std::atomic_bool &latency_flag = *host_storage.latency_flag;
     size_t num_latency_measures = options.num_latency_measures;
 
@@ -449,7 +432,7 @@ static void benchmark_latency_host(const AppOptions &options, BenchStorage &host
     host_storage.latency_duration[guest_thread_num] = finish - start;
 }
 
-static void benchmark_latency_guest(const AppOptions &options, BenchStorage &host_storage) {
+static inline void benchmark_latency_guest(const AppOptions &options, BenchStorage &host_storage) {
     std::atomic_bool &latency_flag = *host_storage.latency_flag;
     size_t num_latency_measures = options.num_latency_measures;
 

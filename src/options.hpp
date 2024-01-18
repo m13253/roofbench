@@ -7,7 +7,7 @@
 namespace roofbench {
 
 struct AppOptions {
-    static constexpr size_t simd_lane_width = 16;
+    static constexpr size_t simd_batch_size = ROOFBENCH_SIMD_BATCH_SIZE;
 
     uint64_t num_float_add = 17179869184;
     uint64_t num_float_mul = 17179869184;
