@@ -69,6 +69,7 @@ struct BenchStorage final {
         latency_flag = new (latency_flag_buf) std::atomic_bool(false);
     }
     BenchStorage(const BenchStorage &) = delete;
+    BenchStorage &operator=(const BenchStorage &) = delete;
     ~BenchStorage() noexcept {
         numa_free(mem_write_buf, mem_write_size);
         latency_flag->~atomic();
