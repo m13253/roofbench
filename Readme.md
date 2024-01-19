@@ -17,6 +17,8 @@ meson setup builddir -D simd_batch_size=232
 ninja -C builddir
 ```
 
+The build system uses `-march=native` by default, so the binary will be optimized for your specific machine.
+
 (Turning on 512-bit SIMD may be fasster on Intel CPUs, if there is only one application running.)
 ```bash
 meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size=464 --wipe
