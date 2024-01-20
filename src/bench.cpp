@@ -104,22 +104,23 @@ struct BenchStorage final {
 
 template <std::floating_point T>
 static inline uint64_t benchmark_float_add(uint64_t num_batches);
-template <>
-inline uint64_t benchmark_float_add<float>(uint64_t num_batches);
-template <>
-inline uint64_t benchmark_float_add<double>(uint64_t num_batches);
 template <std::floating_point T>
 static inline uint64_t benchmark_float_mul(uint64_t num_batches);
-template <>
-inline uint64_t benchmark_float_mul<float>(uint64_t num_batches);
-template <>
-inline uint64_t benchmark_float_mul<double>(uint64_t num_batches);
 template <std::floating_point T>
 static inline uint64_t benchmark_float_fma(uint64_t num_batches);
 template <>
+inline uint64_t benchmark_float_add<float>(uint64_t num_batches);
+template <>
+inline uint64_t benchmark_float_mul<float>(uint64_t num_batches);
+template <>
 inline uint64_t benchmark_float_fma<float>(uint64_t num_batches);
 template <>
+inline uint64_t benchmark_float_add<double>(uint64_t num_batches);
+template <>
+inline uint64_t benchmark_float_mul<double>(uint64_t num_batches);
+template <>
 inline uint64_t benchmark_float_fma<double>(uint64_t num_batches);
+
 static inline void benchmark_mem_write(const BenchStorage &local_storage);
 static inline PerfDuration benchmark_latency_host(const BenchStorage &host_storage);
 static inline void benchmark_latency_guest(const BenchStorage &host_storage);
