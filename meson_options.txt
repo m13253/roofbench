@@ -1,1 +1,2 @@
-option('simd_batch_size', type: 'integer', min: 1, value: 232, description: 'SIMD batch size')
+option('simd_batch_size_f32', type: 'integer', min: 1, value: 232, description: 'float32 SIMD batch size')
+option('simd_batch_size_f64', type: 'integer', min: 1, value: 116, description: 'float64 SIMD batch size')

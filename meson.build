@@ -40,7 +40,8 @@ executable(
     'roofbench',
     sources,
     cpp_args: [
-        '-DROOFBENCH_SIMD_BATCH_SIZE=@0@'.format(get_option('simd_batch_size')),
+        '-DROOFBENCH_SIMD_BATCH_SIZE_F32=@0@'.format(get_option('simd_batch_size_f32')),
+        '-DROOFBENCH_SIMD_BATCH_SIZE_F64=@0@'.format(get_option('simd_batch_size_f64')),
     ],
     install: true,
     dependencies: [

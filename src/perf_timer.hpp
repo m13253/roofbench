@@ -15,7 +15,7 @@ public:
     explicit PerfDuration() noexcept = default;
     explicit PerfDuration(const std::timespec &duration) noexcept :
         duration(duration) {}
-    PerfDuration &operator+=(const PerfDuration &other) noexcept {
+    inline PerfDuration &operator+=(const PerfDuration &other) noexcept {
         duration.tv_sec += other.duration.tv_sec;
         duration.tv_nsec += other.duration.tv_nsec;
         if (duration.tv_nsec >= 1'000'000'000) {
@@ -24,7 +24,7 @@ public:
         }
         return *this;
     }
-    std::chrono::duration<double> seconds() const noexcept {
+    inline std::chrono::duration<double> seconds() const noexcept {
         return std::chrono::duration<double>(duration.tv_sec + duration.tv_nsec * 1e-9);
     }
 
@@ -36,7 +36,7 @@ public:
     explicit PerfTimer() noexcept = default;
     explicit PerfTimer(const std::timespec &time) noexcept :
         time(time) {}
-    PerfDuration operator-(const PerfTimer &since) const noexcept {
+    inline PerfDuration operator-(const PerfTimer &since) const noexcept {
         auto tv_sec = time.tv_sec - since.time.tv_sec;
         auto tv_nsec = time.tv_nsec - since.time.tv_nsec;
         if (time.tv_nsec < since.time.tv_nsec) {
@@ -48,7 +48,7 @@ public:
             .tv_nsec = tv_nsec,
         });
     }
-    static PerfTimer now() {
+    static inline PerfTimer now() {
         std::timespec time;
         if (clock_gettime(CLOCK_MONOTONIC_RAW, &time) != 0) {
             throw std::system_error(errno, std::generic_category());
@@ -65,12 +65,12 @@ private:
 template <>
 struct fmt::formatter<roofbench::PerfDuration> {
     template <typename ParseContext>
-    constexpr auto parse(ParseContext &ctx) {
+    inline constexpr auto parse(ParseContext &ctx) {
         return ctx.begin();
     }
 
     template <typename FormatContext>
-    auto format(const roofbench::PerfDuration &self, FormatContext &ctx) {
+    inline auto format(const roofbench::PerfDuration &self, FormatContext &ctx) {
         return fmt::format_to(ctx.out(), "{}.{:09}", self.duration.tv_sec, self.duration.tv_nsec);
     }
 };

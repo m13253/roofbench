@@ -13,7 +13,7 @@ Dependencies:
 
 ```bash
 export CC=gcc CXX=g++
-meson setup builddir -D simd_batch_size=232
+meson setup builddir -D simd_batch_size_f32=232 -D simd_batch_size_f64=116
 ninja -C builddir
 ```
 
@@ -21,7 +21,7 @@ The build system uses `-march=native` by default, so the binary will be optimize
 
 (Turning on 512-bit SIMD may be fasster on Intel CPUs, if there is only one application running.)
 ```bash
-meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size=464 --wipe
+meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=464 -D simd_batch_size=232 --wipe
 ```
 
 ## Optimal SIMD batch size
@@ -30,8 +30,8 @@ On x86, the optimal value is: (total SIMD register count − occupied count) × 
 
 | Compiler | 256-bit SIMD | 512-bit SIMD |
 |:--------:|:------------:|:------------:|
-|   GCC    |      232     |      240     |
-|  Clang   |      464     |      480     |
+|   GCC    |   232, 116   |   240, 120   |
+|  Clang   |   464, 232   |   480, 240   |
 
 ## Running
 
