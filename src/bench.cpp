@@ -618,6 +618,8 @@ static inline void print_mem_write(std::span<const std::unique_ptr<BenchStorage>
 }
 
 static inline void print_latency(std::span<const std::unique_ptr<BenchStorage>> storage, double &latency_rtt_sum, double &latency_rtt_max) {
+    latency_rtt_sum = 0;
+    latency_rtt_max = 0;
     bool need_comma = false;
     for (size_t i = 0; i < storage.size(); i++) {
         if (need_comma) {
