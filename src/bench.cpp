@@ -10,6 +10,8 @@
 #include <benchmark/benchmark.h>
 #include <cerrno>
 #include <cmath>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
