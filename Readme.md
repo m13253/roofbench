@@ -27,12 +27,12 @@ The build system uses `-march=native` by default, so the binary will be optimize
 (Turning on 512-bit SIMD may be fasster on Intel CPUs, if there is only one application running.)
 ```bash
 export CC=gcc CXX=g++
-meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=464 -D simd_batch_size=232 --wipe
+meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=464 -D simd_batch_size_f64=232 --wipe
 ninja -C builddir
 ```
 ```bash
 export CC=clang CXX=clang++
-meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=480 -D simd_batch_size=240 --wipe
+meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=480 -D simd_batch_size_f64=240 --wipe
 ninja -C builddir
 ```
 
