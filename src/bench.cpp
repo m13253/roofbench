@@ -294,7 +294,7 @@ int benchmark(const AppOptions &options) {
 #pragma omp master
             {
                 local_storage.latency_host_sem.acquire();
-                print_latency(storage, latency_rtt_max, latency_rtt_sum);
+                print_latency(storage, latency_rtt_sum, latency_rtt_max);
             }
 #pragma omp barrier
             storage[thread_num].reset();

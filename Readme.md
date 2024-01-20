@@ -27,10 +27,7 @@ ninja -C builddir
 
 The build system uses `-march=native` by default, so the binary will be optimized for your specific machine.
 
-### Intel AVX-512
-
-Turning on 512-bit SIMD can increase peak FLOPS on Intel CPUs. However, in a multitasking environment, the performance of other processes will be reduced.
-
+(Turning on 512-bit SIMD may be fasster on Intel CPUs, if there is only one application running.)
 ```bash
 export AR=gcc-ar CC=gcc CXX=g++
 meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=464 -D simd_batch_size_f64=232 --wipe
