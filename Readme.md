@@ -14,12 +14,12 @@ Dependencies:
 * numactl or libnuma-dev
 
 ```bash
-export CC=gcc CXX=g++
+export AR=gcc-ar CC=gcc CXX=g++
 meson setup builddir -D simd_batch_size_f32=232 -D simd_batch_size_f64=116
 ninja -C builddir
 ```
 ```bash
-export CC=clang CXX=clang++
+export AR=llvm-ar CC=clang CXX=clang++
 export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++' # Optional
 meson setup builddir -D simd_batch_size_f32=240 -D simd_batch_size_f64=120
 ninja -C builddir
@@ -29,12 +29,12 @@ The build system uses `-march=native` by default, so the binary will be optimize
 
 (Turning on 512-bit SIMD may be fasster on Intel CPUs, if there is only one application running.)
 ```bash
-export CC=gcc CXX=g++
+export AR=gcc-ar CC=gcc CXX=g++
 meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=464 -D simd_batch_size_f64=232 --wipe
 ninja -C builddir
 ```
 ```bash
-export CC=clang CXX=clang++
+export AR=llvm-ar CC=clang CXX=clang++
 export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++' # Optional
 meson setup builddir -D cpp_args="$CXXFLAGS -mprefer-vector-width=512" -D simd_batch_size_f32=480 -D simd_batch_size_f64=240 --wipe
 ninja -C builddir
