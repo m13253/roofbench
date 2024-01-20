@@ -458,11 +458,11 @@ inline uint64_t benchmark_float_fma<float>(uint64_t num_batches) {
     for (uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
         for (size_t j = 0; j < float_batch_size; j++) {
-            a[j] += a[j] * 5.0f;
+            a[j] = std::fmaf(a[j], 5.0f, a[j]);
         }
 #pragma GCC unroll float_batch_size
         for (size_t j = 0; j < float_batch_size; j++) {
-            a[j] += a[j] * -0.8333333f;
+            a[j] = std::fmaf(a[j], -0.8333333f, a[j]);
         }
     }
     benchmark::DoNotOptimize(a);
@@ -480,11 +480,11 @@ inline uint64_t benchmark_float_fma<double>(uint64_t num_batches) {
     for (uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
         for (size_t j = 0; j < float_batch_size; j++) {
-            a[j] += a[j] * 5.0;
+            a[j] = std::fma(a[j], 5.0, a[j]);
         }
 #pragma GCC unroll float_batch_size
         for (size_t j = 0; j < float_batch_size; j++) {
-            a[j] += a[j] * -0.8333333333333334;
+            a[j] = std::fma(a[j], -0.8333333333333334, a[j]);
         }
     }
     benchmark::DoNotOptimize(a);
