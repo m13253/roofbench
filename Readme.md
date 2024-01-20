@@ -17,7 +17,7 @@ meson setup builddir -D simd_batch_size_f32=232 -D simd_batch_size_f64=116
 ninja -C builddir
 ```
 ```bash
-export CC=clang CXX=clang++
+export CC=clang CXX=clang++ LDFLAGS='-fuse-ld=lld -stdlib=libc++'
 meson setup builddir -D simd_batch_size_f32=240 -D simd_batch_size_f64=120
 ninja -C builddir
 ```
@@ -31,7 +31,7 @@ meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f3
 ninja -C builddir
 ```
 ```bash
-export CC=clang CXX=clang++
+export CC=clang CXX=clang++ LDFLAGS='-fuse-ld=lld -stdlib=libc++'
 meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=480 -D simd_batch_size_f64=240 --wipe
 ninja -C builddir
 ```
