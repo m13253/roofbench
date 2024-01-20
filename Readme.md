@@ -36,7 +36,7 @@ meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f3
 ninja -C builddir
 ```
 
-## Optimal SIMD batch size
+### Optimal SIMD batch size
 
 On x86, the optimal value is: (total SIMD register count − occupied count) × (SIMD lane width) ÷ sizeof (float).
 
@@ -48,12 +48,13 @@ On x86, the optimal value is: (total SIMD register count − occupied count) × 
 ## Running
 
 ```bash
-OMP_PLACES=threads OMP_PROC_BIND=true ./builddir/roofbench
+export OMP_PLACES=threads OMP_PROC_BIND=true
+./builddir/roofbench
 ```
 
 The output is in JSON format.
 
-## Included benchmarks
+### Included benchmarks
 
 1. Affinity: shows thread affinity
 2. Float Add: floating-point add operations
@@ -62,7 +63,7 @@ The output is in JSON format.
 5. Mem Write: memset into corresponding NUMA local memory
 6. Inter-thread Latency: round-trip time between each pair of host thread and guest thread, through shared memory communication on host thread’s NUMA node
 
-## Units of measurement
+### Units of measurement
 
 * Time duration: seconds
 * FLOPS: operations per second
