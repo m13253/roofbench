@@ -71,8 +71,8 @@ struct BenchStorage final {
             throw std::system_error(errno, std::generic_category());
         }
 
-        num_float_batches_f32 = div_ceil<uint64_t>(options.num_float_ops, AppOptions::float_batch_size<float> * (uint64_t) 2);
-        num_float_batches_f64 = div_ceil<uint64_t>(options.num_float_ops, AppOptions::float_batch_size<double> * (uint64_t) 2);
+        num_float_batches_f32 = div_ceil<uint64_t>(options.num_float_ops_f32, AppOptions::float_batch_size<float> * (uint64_t) 2);
+        num_float_batches_f64 = div_ceil<uint64_t>(options.num_float_ops_f64, AppOptions::float_batch_size<double> * (uint64_t) 2);
         latency_duration = std::vector<PerfDuration>(num_threads);
 
         pagesize = numa_pagesize();
@@ -314,7 +314,7 @@ int benchmark(const AppOptions &options) {
                 } else {
                     fmt::print("\"fma\": {:.16e}"sv, float_fma_flops_sum_f32);
                 }
-                fmt::print("\n}},\n        \"flops_f64\": {{"sv);
+                fmt::print("}},\n        \"flops_f64\": {{"sv);
                 if (!std::isfinite(float_add_flops_sum_f64)) {
                     fmt::print("\"add\": null, "sv);
                 } else {

@@ -10,7 +10,8 @@ template <typename T>
 struct FloatBatchSize;
 
 struct AppOptions final {
-    uint64_t num_float_ops = 274877906944;
+    uint64_t num_float_ops_f32 = 274877906944;
+    uint64_t num_float_ops_f64 = 137438953472;
     size_t mem_write_size = 134217728;
     size_t num_mem_writes = 64;
     size_t num_latency_measures = 2048;
