@@ -507,20 +507,22 @@ static inline PerfDuration benchmark_latency_host(const BenchStorage &host_stora
     size_t num_latency_measures = host_storage.num_latency_measures;
 
     latency_flag.store(true, std::memory_order_release);
-    while (latency_flag.load(std::memory_order_acquire)) {
+    do {
         ia32_pause();
-    }
+    } while (latency_flag.load(std::memory_order_acquire));
     PerfTimer start = PerfTimer::now();
-    latency_flag.store(true, std::memory_order_release);
-    for (size_t i = 1; i < num_latency_measures; i++) {
-        bool false_value = false;
-        while (!latency_flag.compare_exchange_weak(false_value, true, std::memory_order_acq_rel, std::memory_order_acquire)) {
-            ia32_pause();
-            false_value = false;
+    if (num_latency_measures != 0) {
+        latency_flag.store(true, std::memory_order_release);
+        for (size_t i = 1; i < num_latency_measures; i++) {
+            bool false_value = false;
+            while (!latency_flag.compare_exchange_weak(false_value, true, std::memory_order_acq_rel, std::memory_order_acquire)) {
+                ia32_pause();
+                false_value = false;
+            }
         }
-    }
-    while (latency_flag.load(std::memory_order_acquire)) {
-        ia32_pause();
+        while (latency_flag.load(std::memory_order_acquire)) {
+            ia32_pause();
+        }
     }
     PerfTimer finish = PerfTimer::now();
     return finish - start;
@@ -606,7 +608,7 @@ static inline void print_mem_write(std::span<const std::unique_ptr<BenchStorage>
             }
             const PerfDuration &duration = storage[i]->mem_write_duration;
             fmt::print("\"elapsed\": {}, "sv, duration);
-            if (storage[i]->mem_write_size == 0 && storage[i]->num_mem_writes == 0) {
+            if (storage[i]->mem_write_size == 0 || storage[i]->num_mem_writes == 0) {
                 throughput_sum = std::numeric_limits<double>::quiet_NaN();
                 fmt::print("\"throughput\": null}}"sv);
             } else {
