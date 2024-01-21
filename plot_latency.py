@@ -47,11 +47,24 @@ def main(argv: list[str]):
                 rtt_str = f'{rtt_ns:.1f}'
             elif rtt_ns < 999.5:
                 rtt_str = f'{rtt_ns:.0f}'
+            elif rtt_ns < 99500:
+                rtt_str = f'{rtt * 1e6:.0f}&#181;'
+            elif rtt_ns < 950000:
+                rtt_str = f'{rtt * 1e3:.1f}m'.lstrip('0')
+            elif rtt_ns < 99500000:
+                rtt_str = f'{rtt * 1e3:.0f}m'
+            elif rtt_ns < 950000000:
+                rtt_str = f'{rtt:.1f}s'.lstrip('0')
+            elif rtt_ns < 9500000000:
+                rtt_str = f'{rtt:.0f}s'
             else:
-                rtt_str = '###'
+                rtt_str = '>9s'
             quantile = (rtt_sorted.index(rtt) + 1) / len(rtt_sorted)
-            print(f'  <rect shape-rendering="crispEdges" x="{x * 36}" y="{y * 36}" width="36" height="36" fill="{quantile_to_color(quantile)}"><title>{rtt_ns:.0f}ns</title></rect>')
-            print(f'  <text class="value" font-size="16px" text-anchor="end" x="{x_px[x]}" y="{y_px[y]}">{rtt_str}</text>')
+            print('  <g>')
+            print(f'    <title>{rtt_ns:.0f}ns</title>')
+            print(f'    <rect shape-rendering="crispEdges" x="{x * 36}" y="{y * 36}" width="36" height="36" fill="{quantile_to_color(quantile)}" />')
+            print(f'    <text class="value" font-size="16px" text-anchor="end" x="{x_px[x]}" y="{y_px[y]}">{rtt_str}</text>')
+            print('  </g>')
         print(f'  <text class="label" font-size="16px" text-anchor="end" x="{x_px[n]}" y="{y_px[y]}">{html.escape(host)}</text>')
     for x, guest in enumerate(core_id):
         print(f'  <text class="label" font-size="16px" text-anchor="end" x="{x_px[x]}" y="{y_px[n]}">{html.escape(guest)}</text>')
