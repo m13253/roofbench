@@ -19,9 +19,13 @@
 #include <limits>
 #include <memory>
 #include <new>
+#ifdef __linux__
 #include <numa.h>
+#endif
 #include <omp.h>
+#ifdef __linux__
 #include <sched.h>
+#endif
 #include <semaphore>
 #include <span>
 #include <string_view>
@@ -34,8 +38,8 @@ namespace roofbench {
 
 struct BenchStorage final {
     int omp_affinity;
-    unsigned kernel_affinity;
-    unsigned numa_node;
+    int kernel_affinity;
+    int numa_node;
 
     uint64_t num_float_batches_f32;
     uint64_t num_float_batches_f64;
@@ -69,20 +73,33 @@ struct BenchStorage final {
 
     explicit BenchStorage(const AppOptions &options, int num_threads) {
         omp_affinity = omp_get_place_num();
-        if (getcpu(&kernel_affinity, &numa_node) != 0) {
+#ifdef __linux__
+        if (getcpu((unsigned *) &kernel_affinity, (unsigned *) &numa_node) != 0) {
             throw std::system_error(errno, std::generic_category());
         }
+#else
+        kernel_affinity = -1;
+        numa_node = -1;
+#endif
 
         num_float_batches_f32 = div_ceil<uint64_t>(options.num_float_ops_f32, AppOptions::float_batch_size<float> * (uint64_t) 2);
         num_float_batches_f64 = div_ceil<uint64_t>(options.num_float_ops_f64, AppOptions::float_batch_size<double> * (uint64_t) 2);
         latency_duration = std::vector<PerfDuration>(num_threads);
 
+#ifdef __linux__
         pagesize = numa_pagesize();
+#else
+        pagesize = 4096;
+#endif
         mem_write_size = div_ceil(options.mem_write_size, pagesize) * pagesize;
         num_mem_writes = options.num_mem_writes;
         num_latency_measures = options.num_latency_measures;
 
+#ifdef __linux__
         latency_flag_buf = numa_alloc_local(pagesize + mem_write_size);
+#else
+        latency_flag_buf = new std::byte[pagesize + mem_write_size];
+#endif
         if (!latency_flag_buf) {
             throw std::bad_alloc();
         }
@@ -98,7 +115,11 @@ struct BenchStorage final {
 
     ~BenchStorage() noexcept {
         latency_flag->~atomic();
+#ifdef __linux__
         numa_free(latency_flag_buf, pagesize + mem_write_size);
+#else
+        delete[] (std::byte *) latency_flag_buf;
+#endif
     }
 };
 
@@ -158,12 +179,17 @@ int benchmark(const AppOptions &options) {
 #pragma omp barrier
         if (retval == 0) {
             enable_denorm_ftz();
+#ifdef __linux__
             numa_set_localalloc();
             numa_set_strict(true);
+#endif
             int thread_num = omp_get_thread_num();
             int num_threads = omp_get_num_threads();
 #pragma omp master
             {
+#ifndef __linux__
+                fmt::println(stderr, "Warning: unsupported operating system. Thread affinity and NUMA-aware allocator is unavailable.");
+#endif
                 fmt::print("{{\n    \"affinity\": {{\n"sv);
                 storage = std::vector<std::unique_ptr<BenchStorage>>(num_threads);
                 for (auto &i : spin_barriers) {
