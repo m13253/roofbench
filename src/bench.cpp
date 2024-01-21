@@ -170,7 +170,7 @@ int benchmark(const AppOptions &options) {
 #pragma omp master
         switch (omp_get_proc_bind()) {
         default:
-            fmt::println(stderr, "Error: environment variable OMP_PROC_BIND should be true, close, or spread."sv);
+            fmt::print(stderr, "Error: environment variable OMP_PROC_BIND should be true, close, or spread.\n"sv);
             retval = 1;
         case omp_proc_bind_true:
         case omp_proc_bind_close:
@@ -188,9 +188,11 @@ int benchmark(const AppOptions &options) {
 #pragma omp master
             {
 #ifndef __linux__
-                fmt::println(stderr, "Warning: unsupported operating system. Thread affinity and NUMA-aware allocator is unavailable.");
+                fmt::print(stderr, "Warning: unsupported operating system. Thread affinity and NUMA-aware allocator is unavailable.\n"sv);
 #endif
+                fmt::print(stderr, "Info: use OMP_NUM_THREADS to customize thread count, use OMP_PLACES or GOMP_CPU_AFFINITY to customize thread affinity.\n"sv);
                 fmt::print("{{\n    \"affinity\": {{\n"sv);
+                std::fflush(stdout);
                 storage = std::vector<std::unique_ptr<BenchStorage>>(num_threads);
                 for (auto &i : spin_barriers) {
                     i.init(num_threads);
@@ -203,6 +205,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_affinity(storage);
                 fmt::print("\n    }},\n    \"f32_add\": {{\n"sv);
+                std::fflush(stdout);
             }
             spin_barriers[0].wait();
             PerfTimer start = PerfTimer::now();
@@ -216,6 +219,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_flops(storage, &BenchStorage::float_add_duration_f32, &BenchStorage::num_float_add_ops_f32, float_add_flops_sum_f32);
                 fmt::print("\n    }},\n    \"f32_mul\": {{\n"sv);
+                std::fflush(stdout);
             }
             spin_barriers[2].wait();
             start = PerfTimer::now();
@@ -229,6 +233,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_flops(storage, &BenchStorage::float_mul_duration_f32, &BenchStorage::num_float_mul_ops_f32, float_mul_flops_sum_f32);
                 fmt::print("\n    }},\n    \"f32_fma\": {{\n"sv);
+                std::fflush(stdout);
             }
             spin_barriers[4].wait();
             start = PerfTimer::now();
@@ -242,6 +247,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_flops(storage, &BenchStorage::float_fma_duration_f32, &BenchStorage::num_float_fma_ops_f32, float_fma_flops_sum_f32);
                 fmt::print("\n    }},\n    \"f64_add\": {{\n"sv);
+                std::fflush(stdout);
             }
             spin_barriers[6].wait();
             start = PerfTimer::now();
@@ -255,6 +261,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_flops(storage, &BenchStorage::float_add_duration_f64, &BenchStorage::num_float_add_ops_f64, float_add_flops_sum_f64);
                 fmt::print("\n    }},\n    \"f64_mul\": {{\n"sv);
+                std::fflush(stdout);
             }
             spin_barriers[8].wait();
             start = PerfTimer::now();
@@ -268,6 +275,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_flops(storage, &BenchStorage::float_mul_duration_f64, &BenchStorage::num_float_mul_ops_f64, float_mul_flops_sum_f64);
                 fmt::print("\n    }},\n    \"f64_fma\": {{\n"sv);
+                std::fflush(stdout);
             }
             spin_barriers[10].wait();
             start = PerfTimer::now();
@@ -281,6 +289,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_flops(storage, &BenchStorage::float_fma_duration_f64, &BenchStorage::num_float_fma_ops_f64, float_fma_flops_sum_f64);
                 fmt::print("\n    }},\n    \"mem_write\": {{\n"sv);
+                std::fflush(stdout);
             }
             spin_barriers[12].wait();
             start = PerfTimer::now();
@@ -293,6 +302,7 @@ int benchmark(const AppOptions &options) {
             {
                 print_mem_write(storage, mem_write_throughput_sum);
                 fmt::print("\n    }},\n    \"inter_thread_latency\": {{\n"sv);
+                std::fflush(stdout);
             }
             if (thread_num != 0) {
                 for (int i = 0; i < thread_num; i++) {
@@ -376,7 +386,12 @@ int benchmark(const AppOptions &options) {
                 } else {
                     fmt::print("\"max\": {:.9e}"sv, latency_rtt_max);
                 }
-                fmt::print("}}\n    }}\n}}\n// Use OMP_NUM_THREADS to customize thread count,\n// use OMP_PLACES or GOMP_CPU_AFFINITY to customize thread affinity.\n"sv);
+                fmt::print("}}\n    }}\n}}\n"sv);
+#ifndef __linux__
+                fmt::print(stderr, "Warning: unsupported operating system. Thread affinity and NUMA-aware allocator is unavailable.\n"sv);
+#endif
+                fmt::print(stderr, "Info: use OMP_NUM_THREADS to customize thread count, use OMP_PLACES or GOMP_CPU_AFFINITY to customize thread affinity.\n"sv);
+                std::fflush(stdout);
             }
         }
     }
