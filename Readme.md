@@ -56,6 +56,7 @@ The optimal value is: (total SIMD register count − occupied count) × (SIMD la
 
 ```bash
 OMP_PLACES=threads OMP_PROC_BIND=true ./builddir/roofbench | tee results.json
+./plot_latency.py results.json > latency.svg
 ```
 
 The output is in JSON format.
