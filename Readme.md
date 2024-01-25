@@ -20,7 +20,7 @@ ninja -C builddir
 ```
 ```bash
 export AR=llvm-ar CC=clang CXX=clang++
-export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++' # Optional
+export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++'  # Optional
 meson setup builddir -D simd_batch_size_f32=240 -D simd_batch_size_f64=120
 ninja -C builddir
 ```
@@ -38,7 +38,7 @@ ninja -C builddir
 ```
 ```bash
 export AR=llvm-ar CC=clang CXX=clang++ RANLIB=llvm-ranlib
-export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++' # Optional
+export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++'  # Optional
 meson setup builddir -D cpp_args="$CXXFLAGS -mprefer-vector-width=512" -D simd_batch_size_f32=480 -D simd_batch_size_f64=240 --wipe
 ninja -C builddir
 ```
