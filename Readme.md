@@ -45,12 +45,12 @@ ninja -C builddir
 
 ### Optimal SIMD batch size
 
-On x86, the optimal value is: (total SIMD register count − occupied count) × (SIMD lane width) ÷ sizeof (float).
+The optimal value is: (total SIMD register count − occupied count) × (SIMD lane width) ÷ sizeof (float).
 
-| Compiler | 256-bit SIMD | 512-bit SIMD |
-|:--------:|:------------:|:------------:|
-|   GCC    |   232, 116   |   240, 120   |
-|  Clang   |   464, 232   |   480, 240   |
+| Compiler | AArch64 NEON (128-bit) | AVX2 (256-bit) | AVX-512 (512-bit) |
+|:--------:|:----------------------:|:--------------:|:-----------------:|
+|   GCC    |                        |    464, 232    |      232, 116     |
+|  Clang   |        120, 60         |    240, 120    |      480, 240     |
 
 ## Running
 
