@@ -387,11 +387,11 @@ int benchmark(const AppOptions &options) {
                     fmt::print("\"max\": {:.9e}"sv, latency_rtt_max);
                 }
                 fmt::print("}}\n    }}\n}}\n"sv);
+                std::fflush(stdout);
 #ifndef __linux__
                 fmt::print(stderr, "Warning: unsupported operating system. Thread affinity and NUMA-aware allocator is unavailable.\n"sv);
 #endif
                 fmt::print(stderr, "Info: use OMP_NUM_THREADS to customize thread count, use OMP_PLACES or GOMP_CPU_AFFINITY to customize thread affinity.\n"sv);
-                std::fflush(stdout);
             }
         }
     }
