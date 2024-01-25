@@ -32,12 +32,12 @@ The build system uses `-march=native` by default, so the binary will be optimize
 Turning on 512-bit SIMD can increase peak FLOPS on Intel CPUs. However, in a multitasking environment, the performance of other processes will be reduced.
 
 ```bash
-export AR=gcc-ar CC=gcc CXX=g++
+export AR=gcc-ar CC=gcc CXX=g++ RANLIB=gcc-ranlib
 meson setup builddir -D cpp_args=-mprefer-vector-width=512 -D simd_batch_size_f32=464 -D simd_batch_size_f64=232 --wipe
 ninja -C builddir
 ```
 ```bash
-export AR=llvm-ar CC=clang CXX=clang++
+export AR=llvm-ar CC=clang CXX=clang++ RANLIB=llvm-ranlib
 export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++' # Optional
 meson setup builddir -D cpp_args="$CXXFLAGS -mprefer-vector-width=512" -D simd_batch_size_f32=480 -D simd_batch_size_f64=240 --wipe
 ninja -C builddir
@@ -49,7 +49,7 @@ The optimal value is: (total SIMD register count − occupied count) × (SIMD la
 
 | Compiler | AArch64 NEON (128-bit) | AVX2 (256-bit) | AVX-512 (512-bit) |
 |:--------:|:----------------------:|:--------------:|:-----------------:|
-|   GCC    |                        |    464, 232    |      232, 116     |
+|   GCC    |        120, 60         |    464, 232    |      232, 116     |
 |  Clang   |        120, 60         |    240, 120    |      480, 240     |
 
 ## Running
