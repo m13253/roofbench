@@ -55,8 +55,7 @@ The optimal value is: (total SIMD register count − occupied count) × (SIMD la
 ## Running
 
 ```bash
-export OMP_PLACES=threads OMP_PROC_BIND=true
-./builddir/roofbench
+OMP_PLACES=threads OMP_PROC_BIND=true ./builddir/roofbench | tee results.json
 ```
 
 The output is in JSON format.
