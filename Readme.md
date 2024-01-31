@@ -67,7 +67,7 @@ The output is in JSON format.
 2. Float Add: floating-point add operations
 3. Float Mul: floating-point multiply operations
 4. Float FMA: fused floating-point multiply then add operations
-5. Mem Write: memset into corresponding NUMA local memory
+5. Memory Read: reading the corresponding NUMA local memory
 6. Inter-thread Latency: round-trip time between each pair of host thread and guest thread, through shared memory communication on host thread’s NUMA node
 
 ### Units of measurement

@@ -56,15 +56,15 @@ struct BenchStorage final {
     PerfDuration float_mul_duration_f64;
     PerfDuration float_fma_duration_f64;
 
-    PerfDuration mem_write_duration;
+    PerfDuration mem_read_duration;
     std::vector<PerfDuration> latency_duration;
 
     size_t pagesize;
-    size_t mem_write_size;
-    size_t num_mem_writes;
+    size_t mem_read_size;
+    size_t num_mem_reads;
     size_t num_latency_measures;
 
-    void *mem_write_buf;
+    void *mem_read_buf;
     void *latency_flag_buf;
 
     std::atomic_bool *latency_flag;
@@ -91,20 +91,20 @@ struct BenchStorage final {
 #else
         pagesize = 4096;
 #endif
-        mem_write_size = div_ceil(options.mem_write_size, pagesize) * pagesize;
-        num_mem_writes = options.num_mem_writes;
+        mem_read_size = div_ceil(options.mem_read_size, pagesize) * pagesize;
+        num_mem_reads = options.num_mem_reads;
         num_latency_measures = options.num_latency_measures;
 
 #ifdef __linux__
-        latency_flag_buf = numa_alloc_local(pagesize + mem_write_size);
+        latency_flag_buf = numa_alloc_local(pagesize + mem_read_size);
 #else
-        latency_flag_buf = new std::byte[pagesize + mem_write_size];
+        latency_flag_buf = new std::byte[pagesize + mem_read_size];
 #endif
         if (!latency_flag_buf) {
             throw std::bad_alloc();
         }
-        mem_write_buf = &((std::byte *) latency_flag_buf)[pagesize];
-        std::memset(latency_flag_buf, 0xcc, pagesize + mem_write_size);
+        mem_read_buf = &((std::byte *) latency_flag_buf)[pagesize];
+        std::memset(latency_flag_buf, 0xcc, pagesize + mem_read_size);
         benchmark::DoNotOptimize(latency_flag_buf);
 
         latency_flag = new (latency_flag_buf) std::atomic_bool(false);
@@ -116,7 +116,7 @@ struct BenchStorage final {
     ~BenchStorage() noexcept {
         latency_flag->~atomic();
 #ifdef __linux__
-        numa_free(latency_flag_buf, pagesize + mem_write_size);
+        numa_free(latency_flag_buf, pagesize + mem_read_size);
 #else
         delete[] (std::byte *) latency_flag_buf;
 #endif
@@ -142,13 +142,13 @@ inline uint64_t benchmark_float_mul<double>(uint64_t num_batches);
 template <>
 inline uint64_t benchmark_float_fma<double>(uint64_t num_batches);
 
-static inline void benchmark_mem_write(const BenchStorage &local_storage);
+static inline size_t benchmark_mem_read(const BenchStorage &local_storage);
 static inline PerfDuration benchmark_latency_host(const BenchStorage &host_storage);
 static inline void benchmark_latency_guest(const BenchStorage &host_storage);
 
 static inline void print_affinity(std::span<const std::unique_ptr<BenchStorage>> storage);
 static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> storage, const PerfDuration BenchStorage::*duration, const uint64_t BenchStorage::*num_float_ops, double &flops_sum);
-static inline void print_mem_write(std::span<const std::unique_ptr<BenchStorage>> storage, double &throughput_sum);
+static inline void print_mem_read(std::span<const std::unique_ptr<BenchStorage>> storage, double &throughput_sum);
 static inline void print_latency(std::span<const std::unique_ptr<BenchStorage>> storage, double &latency_rtt_sum, double &latency_rtt_max);
 
 int benchmark(const AppOptions &options) {
@@ -160,7 +160,7 @@ int benchmark(const AppOptions &options) {
     double float_add_flops_sum_f64;
     double float_mul_flops_sum_f64;
     double float_fma_flops_sum_f64;
-    double mem_write_throughput_sum;
+    double mem_read_throughput_sum;
     double latency_rtt_sum;
     double latency_rtt_max;
     std::array<SpinBarrier, 14> spin_barriers;
@@ -191,6 +191,7 @@ int benchmark(const AppOptions &options) {
                 fmt::print(stderr, "Warning: unsupported operating system. Thread affinity and NUMA-aware allocator is unavailable.\n"sv);
 #endif
                 fmt::print(stderr, "Info: use OMP_NUM_THREADS to customize thread count, use OMP_PLACES or GOMP_CPU_AFFINITY to customize thread affinity.\n"sv);
+                std::fflush(stderr);
                 fmt::print("{{\n    \"affinity\": {{\n"sv);
                 std::fflush(stdout);
                 storage = std::vector<std::unique_ptr<BenchStorage>>(num_threads);
@@ -288,19 +289,19 @@ int benchmark(const AppOptions &options) {
 #pragma omp master
             {
                 print_flops(storage, &BenchStorage::float_fma_duration_f64, &BenchStorage::num_float_fma_ops_f64, float_fma_flops_sum_f64);
-                fmt::print("\n    }},\n    \"mem_write\": {{\n"sv);
+                fmt::print("\n    }},\n    \"mem_read\": {{\n"sv);
                 std::fflush(stdout);
             }
             spin_barriers[12].wait();
             start = PerfTimer::now();
             spin_barriers[13].wait();
-            benchmark_mem_write(local_storage);
+            local_storage.mem_read_size = benchmark_mem_read(local_storage);
             finish = PerfTimer::now();
-            local_storage.mem_write_duration = finish - start;
+            local_storage.mem_read_duration = finish - start;
 #pragma omp barrier
 #pragma omp master
             {
-                print_mem_write(storage, mem_write_throughput_sum);
+                print_mem_read(storage, mem_read_throughput_sum);
                 fmt::print("\n    }},\n    \"inter_thread_latency\": {{\n"sv);
                 std::fflush(stdout);
             }
@@ -369,10 +370,10 @@ int benchmark(const AppOptions &options) {
                 } else {
                     fmt::print("\"fma\": {:.16e}"sv, float_fma_flops_sum_f64);
                 }
-                if (!std::isfinite(mem_write_throughput_sum)) {
-                    fmt::print("}},\n        \"mem_write_throughput\": null,\n"sv);
+                if (!std::isfinite(mem_read_throughput_sum)) {
+                    fmt::print("}},\n        \"mem_read_throughput\": null,\n"sv);
                 } else {
-                    fmt::print("}},\n        \"mem_write_throughput\": {:.16e},\n"sv, mem_write_throughput_sum);
+                    fmt::print("}},\n        \"mem_read_throughput\": {:.16e},\n"sv, mem_read_throughput_sum);
                 }
                 fmt::print("        \"inter_thread_latency_rtt\": {{");
                 double latency_rtt_avg = latency_rtt_sum / (num_threads * num_threads);
@@ -392,6 +393,7 @@ int benchmark(const AppOptions &options) {
                 fmt::print(stderr, "Warning: unsupported operating system. Thread affinity and NUMA-aware allocator is unavailable.\n"sv);
 #endif
                 fmt::print(stderr, "Info: use OMP_NUM_THREADS to customize thread count, use OMP_PLACES or GOMP_CPU_AFFINITY to customize thread affinity.\n"sv);
+                std::fflush(stderr);
             }
         }
     }
@@ -533,14 +535,18 @@ inline uint64_t benchmark_float_fma<double>(uint64_t num_batches) {
     return num_batches * 4 * float_batch_size;
 }
 
-static inline void benchmark_mem_write(const BenchStorage &local_storage) {
-    void *mem_write_buf = local_storage.mem_write_buf;
-    size_t mem_write_size = local_storage.mem_write_size;
-    size_t num_mem_writes = local_storage.num_mem_writes;
-    for (size_t i = 0; i < num_mem_writes; i++) {
-        std::memset(mem_write_buf, (uint8_t) i, mem_write_size);
-        benchmark::DoNotOptimize(mem_write_buf);
+static inline size_t benchmark_mem_read(const BenchStorage &local_storage) {
+    const size_t *mem_read_buf = (const size_t *) local_storage.mem_read_buf;
+    size_t mem_read_size = local_storage.mem_read_size;
+    size_t num_mem_reads = local_storage.num_mem_reads;
+    size_t sum = 0;
+    for (size_t i = 0; i < num_mem_reads; i++) {
+        for (size_t j = 0; j < mem_read_size / sizeof(size_t); j++) {
+            sum ^= mem_read_buf[j];
+        }
+        benchmark::DoNotOptimize(sum);
     }
+    return mem_read_size / sizeof(size_t) * sizeof(size_t);
 }
 
 static inline PerfDuration benchmark_latency_host(const BenchStorage &host_storage) {
@@ -629,7 +635,7 @@ static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> st
     }
 }
 
-static inline void print_mem_write(std::span<const std::unique_ptr<BenchStorage>> storage, double &throughput_sum) {
+static inline void print_mem_read(std::span<const std::unique_ptr<BenchStorage>> storage, double &throughput_sum) {
     throughput_sum = 0;
     bool need_comma = false;
     for (size_t i = 0; i < storage.size(); i++) {
@@ -641,19 +647,19 @@ static inline void print_mem_write(std::span<const std::unique_ptr<BenchStorage>
             fmt::print("        \"{}\": null"sv, i);
         } else {
             fmt::print("        \"{}\": {{"sv, i);
-            size_t bytes_written;
-            if (__builtin_mul_overflow(storage[i]->mem_write_size, storage[i]->num_mem_writes, &bytes_written)) {
-                fmt::print("\"bytes_written\": null, "sv);
+            size_t bytes_read;
+            if (__builtin_mul_overflow(storage[i]->mem_read_size, storage[i]->num_mem_reads, &bytes_read)) {
+                fmt::print("\"bytes_read\": null, "sv);
             } else {
-                fmt::print("\"bytes_written\": {}, "sv, bytes_written);
+                fmt::print("\"bytes_read\": {}, "sv, bytes_read);
             }
-            const PerfDuration &duration = storage[i]->mem_write_duration;
+            const PerfDuration &duration = storage[i]->mem_read_duration;
             fmt::print("\"elapsed\": {}, "sv, duration);
-            if (storage[i]->mem_write_size == 0 || storage[i]->num_mem_writes == 0) {
+            if (storage[i]->mem_read_size == 0 || storage[i]->num_mem_reads == 0) {
                 throughput_sum = std::numeric_limits<double>::quiet_NaN();
                 fmt::print("\"throughput\": null}}"sv);
             } else {
-                double throughput = (double) storage[i]->mem_write_size * storage[i]->num_mem_writes / duration.seconds().count();
+                double throughput = (double) storage[i]->mem_read_size * storage[i]->num_mem_reads / duration.seconds().count();
                 throughput_sum += throughput;
                 fmt::print("\"throughput\": {:.16e}}}"sv, throughput);
             }
