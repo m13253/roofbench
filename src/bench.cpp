@@ -41,14 +41,14 @@ struct BenchStorage final {
     int kernel_affinity;
     int numa_node;
 
-    uint64_t num_float_batches_f32;
-    uint64_t num_float_batches_f64;
-    uint64_t num_float_add_ops_f32;
-    uint64_t num_float_mul_ops_f32;
-    uint64_t num_float_fma_ops_f32;
-    uint64_t num_float_add_ops_f64;
-    uint64_t num_float_mul_ops_f64;
-    uint64_t num_float_fma_ops_f64;
+    std::uint64_t num_float_batches_f32;
+    std::uint64_t num_float_batches_f64;
+    std::uint64_t num_float_add_ops_f32;
+    std::uint64_t num_float_mul_ops_f32;
+    std::uint64_t num_float_fma_ops_f32;
+    std::uint64_t num_float_add_ops_f64;
+    std::uint64_t num_float_mul_ops_f64;
+    std::uint64_t num_float_fma_ops_f64;
     PerfDuration float_add_duration_f32;
     PerfDuration float_mul_duration_f32;
     PerfDuration float_fma_duration_f32;
@@ -59,10 +59,10 @@ struct BenchStorage final {
     PerfDuration mem_read_duration;
     std::vector<PerfDuration> latency_duration;
 
-    size_t pagesize;
-    size_t mem_read_size;
-    size_t num_mem_reads;
-    size_t num_latency_measures;
+    std::size_t pagesize;
+    std::size_t mem_read_size;
+    std::size_t num_mem_reads;
+    std::size_t num_latency_measures;
 
     void *mem_read_buf;
     void *latency_flag_buf;
@@ -82,8 +82,8 @@ struct BenchStorage final {
         numa_node = -1;
 #endif
 
-        num_float_batches_f32 = div_ceil<uint64_t>(options.num_float_ops_f32, AppOptions::float_batch_size<float> * (uint64_t) 2);
-        num_float_batches_f64 = div_ceil<uint64_t>(options.num_float_ops_f64, AppOptions::float_batch_size<double> * (uint64_t) 2);
+        num_float_batches_f32 = div_ceil<std::uint64_t>(options.num_float_ops_f32, AppOptions::float_batch_size<float> * (std::uint64_t) 2);
+        num_float_batches_f64 = div_ceil<std::uint64_t>(options.num_float_ops_f64, AppOptions::float_batch_size<double> * (std::uint64_t) 2);
         latency_duration = std::vector<PerfDuration>(num_threads);
 
 #ifdef __linux__
@@ -124,30 +124,30 @@ struct BenchStorage final {
 };
 
 template <std::floating_point T>
-static inline uint64_t benchmark_float_add(uint64_t num_batches);
+static inline std::uint64_t benchmark_float_add(std::uint64_t num_batches);
 template <std::floating_point T>
-static inline uint64_t benchmark_float_mul(uint64_t num_batches);
+static inline std::uint64_t benchmark_float_mul(std::uint64_t num_batches);
 template <std::floating_point T>
-static inline uint64_t benchmark_float_fma(uint64_t num_batches);
+static inline std::uint64_t benchmark_float_fma(std::uint64_t num_batches);
 template <>
-inline uint64_t benchmark_float_add<float>(uint64_t num_batches);
+inline std::uint64_t benchmark_float_add<float>(std::uint64_t num_batches);
 template <>
-inline uint64_t benchmark_float_mul<float>(uint64_t num_batches);
+inline std::uint64_t benchmark_float_mul<float>(std::uint64_t num_batches);
 template <>
-inline uint64_t benchmark_float_fma<float>(uint64_t num_batches);
+inline std::uint64_t benchmark_float_fma<float>(std::uint64_t num_batches);
 template <>
-inline uint64_t benchmark_float_add<double>(uint64_t num_batches);
+inline std::uint64_t benchmark_float_add<double>(std::uint64_t num_batches);
 template <>
-inline uint64_t benchmark_float_mul<double>(uint64_t num_batches);
+inline std::uint64_t benchmark_float_mul<double>(std::uint64_t num_batches);
 template <>
-inline uint64_t benchmark_float_fma<double>(uint64_t num_batches);
+inline std::uint64_t benchmark_float_fma<double>(std::uint64_t num_batches);
 
-static inline size_t benchmark_mem_read(const BenchStorage &local_storage);
+static inline std::size_t benchmark_mem_read(const BenchStorage &local_storage);
 static inline PerfDuration benchmark_latency_host(const BenchStorage &host_storage);
 static inline void benchmark_latency_guest(const BenchStorage &host_storage);
 
 static inline void print_affinity(std::span<const std::unique_ptr<BenchStorage>> storage);
-static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> storage, const PerfDuration BenchStorage::*duration, const uint64_t BenchStorage::*num_float_ops, double &flops_sum);
+static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> storage, const PerfDuration BenchStorage::*duration, const std::uint64_t BenchStorage::*num_float_ops, double &flops_sum);
 static inline void print_mem_read(std::span<const std::unique_ptr<BenchStorage>> storage, double &throughput_sum);
 static inline void print_latency(std::span<const std::unique_ptr<BenchStorage>> storage, double &latency_rtt_sum, double &latency_rtt_max);
 
@@ -211,7 +211,7 @@ int benchmark(const AppOptions &options) {
             spin_barriers[0].wait();
             PerfTimer start = PerfTimer::now();
             spin_barriers[1].wait();
-            uint64_t num_float_ops = benchmark_float_add<float>(local_storage.num_float_batches_f32);
+            std::uint64_t num_float_ops = benchmark_float_add<float>(local_storage.num_float_batches_f32);
             PerfTimer finish = PerfTimer::now();
             local_storage.num_float_add_ops_f32 = num_float_ops;
             local_storage.float_add_duration_f32 = finish - start;
@@ -401,21 +401,21 @@ int benchmark(const AppOptions &options) {
 }
 
 template <>
-inline uint64_t benchmark_float_add<float>(uint64_t num_batches) {
-    constexpr size_t float_batch_size = AppOptions::float_batch_size<float>;
+inline std::uint64_t benchmark_float_add<float>(std::uint64_t num_batches) {
+    constexpr std::size_t float_batch_size = AppOptions::float_batch_size<float>;
     alignas(4096) float a[float_batch_size];
-    for (size_t j = 0; j < float_batch_size; j++) {
+    for (std::size_t j = 0; j < float_batch_size; j++) {
         a[j] = 1.0f;
     }
     benchmark::DoNotOptimize(a);
 
-    for (uint64_t i = 0; i < num_batches; i++) {
+    for (std::uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] += 1.0f;
         }
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] += -1.0f;
         }
     }
@@ -423,21 +423,21 @@ inline uint64_t benchmark_float_add<float>(uint64_t num_batches) {
     return num_batches * 2 * float_batch_size;
 }
 template <>
-inline uint64_t benchmark_float_add<double>(uint64_t num_batches) {
-    constexpr size_t float_batch_size = AppOptions::float_batch_size<double>;
+inline std::uint64_t benchmark_float_add<double>(std::uint64_t num_batches) {
+    constexpr std::size_t float_batch_size = AppOptions::float_batch_size<double>;
     alignas(4096) double a[float_batch_size];
-    for (size_t j = 0; j < float_batch_size; j++) {
+    for (std::size_t j = 0; j < float_batch_size; j++) {
         a[j] = 1.0;
     }
     benchmark::DoNotOptimize(a);
 
-    for (uint64_t i = 0; i < num_batches; i++) {
+    for (std::uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] += 1.0;
         }
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] += -1.0;
         }
     }
@@ -446,21 +446,21 @@ inline uint64_t benchmark_float_add<double>(uint64_t num_batches) {
 }
 
 template <>
-inline uint64_t benchmark_float_mul<float>(uint64_t num_batches) {
-    constexpr size_t float_batch_size = AppOptions::float_batch_size<float>;
+inline std::uint64_t benchmark_float_mul<float>(std::uint64_t num_batches) {
+    constexpr std::size_t float_batch_size = AppOptions::float_batch_size<float>;
     alignas(4096) float a[float_batch_size];
-    for (size_t j = 0; j < float_batch_size; j++) {
+    for (std::size_t j = 0; j < float_batch_size; j++) {
         a[j] = 1.0f;
     }
     benchmark::DoNotOptimize(a);
 
-    for (uint64_t i = 0; i < num_batches; i++) {
+    for (std::uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] *= 5.0f;
         }
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] *= 0.2f;
         }
     }
@@ -468,21 +468,21 @@ inline uint64_t benchmark_float_mul<float>(uint64_t num_batches) {
     return num_batches * 2 * float_batch_size;
 }
 template <>
-inline uint64_t benchmark_float_mul<double>(uint64_t num_batches) {
-    constexpr size_t float_batch_size = AppOptions::float_batch_size<double>;
+inline std::uint64_t benchmark_float_mul<double>(std::uint64_t num_batches) {
+    constexpr std::size_t float_batch_size = AppOptions::float_batch_size<double>;
     alignas(4096) double a[float_batch_size];
-    for (size_t j = 0; j < float_batch_size; j++) {
+    for (std::size_t j = 0; j < float_batch_size; j++) {
         a[j] = 1.0;
     }
     benchmark::DoNotOptimize(a);
 
-    for (uint64_t i = 0; i < num_batches; i++) {
+    for (std::uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] *= 5.0;
         }
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] *= 0.2;
         }
     }
@@ -491,21 +491,21 @@ inline uint64_t benchmark_float_mul<double>(uint64_t num_batches) {
 }
 
 template <>
-inline uint64_t benchmark_float_fma<float>(uint64_t num_batches) {
-    constexpr size_t float_batch_size = AppOptions::float_batch_size<float>;
+inline std::uint64_t benchmark_float_fma<float>(std::uint64_t num_batches) {
+    constexpr std::size_t float_batch_size = AppOptions::float_batch_size<float>;
     alignas(4096) float a[float_batch_size];
-    for (size_t j = 0; j < float_batch_size; j++) {
+    for (std::size_t j = 0; j < float_batch_size; j++) {
         a[j] = 1.0f;
     }
     benchmark::DoNotOptimize(a);
 
-    for (uint64_t i = 0; i < num_batches; i++) {
+    for (std::uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] = std::fmaf(a[j], 5.0f, a[j]);
         }
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] = std::fmaf(a[j], -0.8333333f, a[j]);
         }
     }
@@ -513,21 +513,21 @@ inline uint64_t benchmark_float_fma<float>(uint64_t num_batches) {
     return num_batches * 4 * float_batch_size;
 }
 template <>
-inline uint64_t benchmark_float_fma<double>(uint64_t num_batches) {
-    constexpr size_t float_batch_size = AppOptions::float_batch_size<double>;
+inline std::uint64_t benchmark_float_fma<double>(std::uint64_t num_batches) {
+    constexpr std::size_t float_batch_size = AppOptions::float_batch_size<double>;
     alignas(4096) double a[float_batch_size];
-    for (size_t j = 0; j < float_batch_size; j++) {
+    for (std::size_t j = 0; j < float_batch_size; j++) {
         a[j] = 1.0;
     }
     benchmark::DoNotOptimize(a);
 
-    for (uint64_t i = 0; i < num_batches; i++) {
+    for (std::uint64_t i = 0; i < num_batches; i++) {
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] = std::fma(a[j], 5.0, a[j]);
         }
 #pragma GCC unroll float_batch_size
-        for (size_t j = 0; j < float_batch_size; j++) {
+        for (std::size_t j = 0; j < float_batch_size; j++) {
             a[j] = std::fma(a[j], -0.8333333333333334, a[j]);
         }
     }
@@ -535,23 +535,23 @@ inline uint64_t benchmark_float_fma<double>(uint64_t num_batches) {
     return num_batches * 4 * float_batch_size;
 }
 
-static inline size_t benchmark_mem_read(const BenchStorage &local_storage) {
-    const size_t *mem_read_buf = (const size_t *) local_storage.mem_read_buf;
-    size_t mem_read_size = local_storage.mem_read_size;
-    size_t num_mem_reads = local_storage.num_mem_reads;
-    size_t sum = 0;
-    for (size_t i = 0; i < num_mem_reads; i++) {
-        for (size_t j = 0; j < mem_read_size / sizeof(size_t); j++) {
+static inline std::size_t benchmark_mem_read(const BenchStorage &local_storage) {
+    const std::size_t *mem_read_buf = (const std::size_t *) local_storage.mem_read_buf;
+    std::size_t mem_read_size = local_storage.mem_read_size;
+    std::size_t num_mem_reads = local_storage.num_mem_reads;
+    std::size_t sum = 0;
+    for (std::size_t i = 0; i < num_mem_reads; i++) {
+        for (std::size_t j = 0; j < mem_read_size / sizeof(std::size_t); j++) {
             sum ^= mem_read_buf[j];
         }
         benchmark::DoNotOptimize(sum);
     }
-    return mem_read_size / sizeof(size_t) * sizeof(size_t);
+    return mem_read_size / sizeof(std::size_t) * sizeof(std::size_t);
 }
 
 static inline PerfDuration benchmark_latency_host(const BenchStorage &host_storage) {
     std::atomic_bool &latency_flag = *host_storage.latency_flag;
-    size_t num_latency_measures = host_storage.num_latency_measures;
+    std::size_t num_latency_measures = host_storage.num_latency_measures;
 
     latency_flag.store(true, std::memory_order_release);
     do {
@@ -560,7 +560,7 @@ static inline PerfDuration benchmark_latency_host(const BenchStorage &host_stora
     PerfTimer start = PerfTimer::now();
     if (num_latency_measures != 0) {
         latency_flag.store(true, std::memory_order_release);
-        for (size_t i = 1; i < num_latency_measures; i++) {
+        for (std::size_t i = 1; i < num_latency_measures; i++) {
             bool false_value = false;
             while (!latency_flag.compare_exchange_weak(false_value, true, std::memory_order_acq_rel, std::memory_order_acquire)) {
                 ia32_pause();
@@ -577,9 +577,9 @@ static inline PerfDuration benchmark_latency_host(const BenchStorage &host_stora
 
 static inline void benchmark_latency_guest(const BenchStorage &host_storage) {
     std::atomic_bool &latency_flag = *host_storage.latency_flag;
-    size_t num_latency_measures = host_storage.num_latency_measures;
+    std::size_t num_latency_measures = host_storage.num_latency_measures;
 
-    for (size_t i = 0; i <= num_latency_measures; i++) {
+    for (std::size_t i = 0; i <= num_latency_measures; i++) {
         bool true_value = true;
         while (!latency_flag.compare_exchange_weak(true_value, false, std::memory_order_acq_rel, std::memory_order_acquire)) {
             ia32_pause();
@@ -590,7 +590,7 @@ static inline void benchmark_latency_guest(const BenchStorage &host_storage) {
 
 static inline void print_affinity(std::span<const std::unique_ptr<BenchStorage>> storage) {
     bool need_comma = false;
-    for (size_t i = 0; i < storage.size(); i++) {
+    for (std::size_t i = 0; i < storage.size(); i++) {
         if (need_comma) {
             fmt::print(",\n"sv);
         }
@@ -606,10 +606,10 @@ static inline void print_affinity(std::span<const std::unique_ptr<BenchStorage>>
     }
 }
 
-static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> storage, const PerfDuration BenchStorage::*duration, const uint64_t BenchStorage::*num_float_ops, double &flops_sum) {
+static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> storage, const PerfDuration BenchStorage::*duration, const std::uint64_t BenchStorage::*num_float_ops, double &flops_sum) {
     flops_sum = 0;
     bool need_comma = false;
-    for (size_t i = 0; i < storage.size(); i++) {
+    for (std::size_t i = 0; i < storage.size(); i++) {
         if (need_comma) {
             fmt::print(",\n"sv);
         }
@@ -617,7 +617,7 @@ static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> st
         if (!storage[i]) {
             fmt::print("        \"{}\": null"sv, i);
         } else {
-            uint64_t num_float_ops_i = storage[i].get()->*num_float_ops;
+            std::uint64_t num_float_ops_i = storage[i].get()->*num_float_ops;
             const PerfDuration &duration_i = storage[i].get()->*duration;
             fmt::print(
                 "        \"{}\": {{\"ops_performed\": {}, \"elapsed\": {}, "sv,
@@ -638,7 +638,7 @@ static inline void print_flops(std::span<const std::unique_ptr<BenchStorage>> st
 static inline void print_mem_read(std::span<const std::unique_ptr<BenchStorage>> storage, double &throughput_sum) {
     throughput_sum = 0;
     bool need_comma = false;
-    for (size_t i = 0; i < storage.size(); i++) {
+    for (std::size_t i = 0; i < storage.size(); i++) {
         if (need_comma) {
             fmt::print(",\n"sv);
         }
@@ -647,7 +647,7 @@ static inline void print_mem_read(std::span<const std::unique_ptr<BenchStorage>>
             fmt::print("        \"{}\": null"sv, i);
         } else {
             fmt::print("        \"{}\": {{"sv, i);
-            size_t bytes_read;
+            std::size_t bytes_read;
             if (__builtin_mul_overflow(storage[i]->mem_read_size, storage[i]->num_mem_reads, &bytes_read)) {
                 fmt::print("\"bytes_read\": null, "sv);
             } else {
@@ -671,7 +671,7 @@ static inline void print_latency(std::span<const std::unique_ptr<BenchStorage>> 
     latency_rtt_sum = 0;
     latency_rtt_max = 0;
     bool need_comma = false;
-    for (size_t i = 0; i < storage.size(); i++) {
+    for (std::size_t i = 0; i < storage.size(); i++) {
         if (need_comma) {
             fmt::print(",\n"sv);
         }
@@ -680,7 +680,7 @@ static inline void print_latency(std::span<const std::unique_ptr<BenchStorage>> 
             fmt::print("        \"{}\": null"sv, i);
         } else {
             fmt::print("        \"{}\": {{\"rtt_to\": {{"sv, i);
-            for (size_t j = 0; j < storage[i]->latency_duration.size(); j++) {
+            for (std::size_t j = 0; j < storage[i]->latency_duration.size(); j++) {
                 if (j != 0) {
                     fmt::print(", "sv);
                 }

@@ -8,10 +8,10 @@ namespace roofbench {
 
 class SpinBarrier final {
 public:
-    explicit inline SpinBarrier(size_t count = 0) noexcept :
+    explicit inline SpinBarrier(std::size_t count = 0) noexcept :
         spinner(count) {
     }
-    inline void init(size_t count) noexcept {
+    inline void init(std::size_t count) noexcept {
         spinner.store(count, std::memory_order_relaxed);
     }
     inline void wait() noexcept {
