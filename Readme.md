@@ -14,12 +14,12 @@ Dependencies:
 * numactl or libnuma-dev
 
 ```bash
-export AR=gcc-ar CC=gcc CXX=g++
+export AR=gcc-ar CC=gcc CXX=g++ RANLIB=gcc-ranlib
 meson setup builddir -D simd_batch_size_f32=232 -D simd_batch_size_f64=116
 ninja -C builddir
 ```
 ```bash
-export AR=llvm-ar CC=clang CXX=clang++
+export AR=llvm-ar CC=clang CXX=clang++ RANLIB=llvm-ranlib
 export CXXFLAGS=-stdlib=libc++ LDFLAGS='-fuse-ld=lld -stdlib=libc++'  # Optional
 meson setup builddir -D simd_batch_size_f32=240 -D simd_batch_size_f64=120
 ninja -C builddir
