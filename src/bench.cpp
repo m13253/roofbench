@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fmt/core.h>
 #include <limits>
@@ -169,9 +170,13 @@ int benchmark(const AppOptions &options) {
     {
 #pragma omp master
         switch (omp_get_proc_bind()) {
-        default:
-            fmt::print(stderr, "Error: environment variable OMP_PROC_BIND should be true, close, or spread.\n"sv);
-            retval = 1;
+        default: {
+            const char *gomp_cpu_affinity = std::getenv("GOMP_CPU_AFFINITY");
+            if (gomp_cpu_affinity == nullptr || gomp_cpu_affinity[0] == '\0') {
+                fmt::print(stderr, "Error: environment variable OMP_PROC_BIND should be true, close, or spread.\n"sv);
+                retval = 1;
+            }
+        }
         case omp_proc_bind_true:
         case omp_proc_bind_close:
         case omp_proc_bind_spread:;
