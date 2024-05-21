@@ -30,6 +30,9 @@
 #include <semaphore>
 #include <span>
 #include <string_view>
+#if defined(__linux__) && (__GLIBC__ < 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ < 29)
+#include <sys/syscall.h> // glibc < 2.29 didn't have getcpu() in sched.h
+#endif
 #include <system_error>
 #include <vector>
 
@@ -75,9 +78,15 @@ struct BenchStorage final {
     explicit BenchStorage(const AppOptions &options, int num_threads) {
         omp_affinity = omp_get_place_num();
 #ifdef __linux__
+#if __GLIBC__ < 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ < 29
+        if (syscall(SYS_getcpu, (unsigned *) &kernel_affinity, (unsigned *) &numa_node, nullptr) != 0) { // glibc < 2.29 didn't have getcpu() in sched.h
+            throw std::system_error(errno, std::generic_category());
+        }
+#else
         if (getcpu((unsigned *) &kernel_affinity, (unsigned *) &numa_node) != 0) {
             throw std::system_error(errno, std::generic_category());
         }
+#endif
 #else
         kernel_affinity = -1;
         numa_node = -1;
