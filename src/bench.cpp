@@ -32,6 +32,7 @@
 #include <string_view>
 #if defined(__linux__) && (__GLIBC__ < 2 || __GLIBC__ == 2 && __GLIBC_MINOR__ < 29)
 #include <sys/syscall.h> // glibc < 2.29 didn't have getcpu() in sched.h
+#include <unistd.h>
 #endif
 #include <system_error>
 #include <vector>
