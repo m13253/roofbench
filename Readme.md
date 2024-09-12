@@ -49,7 +49,7 @@ The optimal value is: (total SIMD register count − occupied count) × (SIMD la
 
 | Compiler | AArch64 NEON (128-bit) | AVX2 (256-bit) | AVX-512 (512-bit) |
 |:--------:|:----------------------:|:--------------:|:-----------------:|
-|   GCC    |        120, 60         |    464, 232    |      232, 116     |
+|   GCC    |        120, 60         |    232, 116    |      464, 232     |
 |  Clang   |        120, 60         |    240, 120    |      480, 240     |
 
 ## Running
